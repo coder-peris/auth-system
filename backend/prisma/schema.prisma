@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/prisma/generated"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  GITHUB
+}
+
+enum TwoFactorMethod {
+  NONE
+  EMAIL
+  TOTP
+}
+
+enum OtpTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  MAGIC_LINK
+  TWO_FACTOR
+}
+
+model User {
+  id                  String          @id @default(cuid())
+  email               String          @unique
+  password            String?
+  name                String?
+  avatarUrl           String?
+  role                Role            @default(USER)
+  provider            AuthProvider    @default(LOCAL)
+  providerId          String?
+  isVerified          Boolean         @default(false)
+  twoFactorMethod     TwoFactorMethod @default(NONE)
+  totpSecret          String?
+  failedLoginAttempts Int             @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  sessions  Session[]
+  otpTokens OtpToken[]
+}
+
+model Session {
+  id                 String   @id @default(cuid())
+  userId             String
+  tokenHash          String   @unique
+  userAgent          String?
+  ip                 String?
+  isTwoFactorPending Boolean  @default(false)
+  lastActiveAt       DateTime @default(now())
+  createdAt          DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model OtpToken {
+  id        String       @id @default(cuid())
+  email     String
+  tokenHash String       @unique
+  type      OtpTokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime     @default(now())
+
+  user User? @relation(fields: [email], references: [email], onDelete: Cascade)
+}
