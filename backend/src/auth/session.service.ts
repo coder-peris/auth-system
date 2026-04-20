@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import * as crypto from 'crypto';
+import crypto from 'crypto';
 
 const SESSION_TTL_MS = 15 * 24 * 60 * 60 * 1000; // 15 days
 

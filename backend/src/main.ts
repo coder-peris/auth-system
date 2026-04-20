@@ -8,6 +8,7 @@ void (async () => {
   const app = await NestFactory.create(AppModule);
 
   app.use(cookieParser());
+  app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
   const port = process.env.PORT ?? 3000;

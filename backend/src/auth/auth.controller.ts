@@ -7,6 +7,8 @@ import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser, SessionId } from './decorators/current-user.decorator';
 import type { AuthenticatedRequest } from './types/request.type';
 import type { User } from '@/prisma/generated/client';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -83,5 +85,19 @@ export class AuthController {
   @UseGuards(AuthGuard)
   async getMe(@CurrentUser() user: User) {
     return this.authService.getMe(user.id);
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body() dto: VerifyEmailDto) {
+    await this.authService.verifyEmail(dto.email, dto.otp);
+    return { message: 'Email verified successfully' };
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendVerification(@Body() dto: ResendVerificationDto) {
+    await this.authService.resendVerification(dto.email);
+    return { message: 'Verification OTP sent' };
   }
 }
