@@ -160,4 +160,31 @@ export class AuthService {
       if (user) await this.sessionService.deleteAllUserSessions(user.id);
     }
   }
+
+  async magicLinkRequest(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    // don't leak user existence
+    if (!user) return;
+
+    const token = await this.otpService.createUrlToken(email, OtpTokenType.MAGIC_LINK);
+    const link = `${process.env.FRONTEND_URL}/auth/magic-link?token=${token}&email=${email}`;
+
+    await this.mailService.sendMail(
+      email,
+      'Your magic link',
+      `<p>Click the link below to log in:</p><a href="${link}">${link}</a><p>Expires in 15 minutes.</p>`,
+    );
+  }
+
+  async magicLinkVerify(email: string, token: string, ip?: string, userAgent?: string) {
+    const valid = await this.otpService.validateOtp(email, token, OtpTokenType.MAGIC_LINK);
+    if (!valid) throw new UnauthorizedException('Invalid or expired magic link');
+
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) throw new UnauthorizedException('Invalid or expired magic link');
+
+    const sessionToken = await this.sessionService.createSession(user.id, ip, userAgent);
+    return sessionToken;
+  }
 }

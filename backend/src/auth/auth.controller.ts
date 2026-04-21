@@ -23,6 +23,7 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { MagicLinkDto, MagicLinkVerifyDto } from './dto/magic-link.dto';
 import { SessionService } from './session.service';
 
 const COOKIE_OPTIONS = {
@@ -149,5 +150,29 @@ export class AuthController {
   async revokeSession(@Param('id') sessionId: string, @CurrentUser() user: User) {
     await this.sessionService.deleteSessionById(sessionId, user.id);
     return { message: 'Session revoked successfully' };
+  }
+
+  @Post('magic-link')
+  @HttpCode(HttpStatus.OK)
+  async magicLinkRequest(@Body() dto: MagicLinkDto) {
+    await this.authService.magicLinkRequest(dto.email);
+    return { message: 'If that email exists, a magic link has been sent' };
+  }
+
+  @Post('magic-link/verify')
+  @HttpCode(HttpStatus.OK)
+  async magicLinkVerify(
+    @Body() dto: MagicLinkVerifyDto,
+    @Req() req: AuthenticatedRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const sessionToken = await this.authService.magicLinkVerify(
+      dto.email,
+      dto.token,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    setSessionCookie(res, sessionToken);
+    return { message: 'Logged in successfully' };
   }
 }

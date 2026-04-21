@@ -58,4 +58,24 @@ export class OtpService {
 
     return true;
   }
+
+  async createUrlToken(email: string, type: OtpTokenType): Promise<string> {
+    await this.prisma.otpToken.updateMany({
+      where: { email, type, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    const token = crypto.randomBytes(32).toString('hex');
+
+    await this.prisma.otpToken.create({
+      data: {
+        email,
+        tokenHash: hashToken(token),
+        type,
+        expiresAt: new Date(Date.now() + OTP_EXPIRY_MS),
+      },
+    });
+
+    return token;
+  }
 }
