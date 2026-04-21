@@ -130,4 +130,34 @@ export class AuthService {
       `<p>Your verification code is:</p><h2>${otp}</h2><p>Expires in 15 minutes.</p>`,
     );
   }
+
+  async forgotPassword(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    // don't leak user existence
+    if (!user) return;
+
+    const otp = await this.otpService.createOtp(email, OtpTokenType.PASSWORD_RESET);
+    await this.mailService.sendMail(
+      email,
+      'Reset your password',
+      `<p>Your password reset code is:</p><h2>${otp}</h2><p>Expires in 15 minutes.</p>`,
+    );
+  }
+
+  async resetPassword(email: string, otp: string, newPassword: string, logoutAll: boolean) {
+    const valid = await this.otpService.validateOtp(email, otp, OtpTokenType.PASSWORD_RESET);
+    if (!valid) throw new UnauthorizedException('Invalid or expired OTP');
+
+    const hashedPassword = await argon2.hash(newPassword);
+    await this.prisma.user.update({
+      where: { email },
+      data: { password: hashedPassword },
+    });
+
+    if (logoutAll) {
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (user) await this.sessionService.deleteAllUserSessions(user.id);
+    }
+  }
 }
