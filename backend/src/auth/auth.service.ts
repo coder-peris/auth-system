@@ -85,8 +85,8 @@ export class AuthService {
     return { user, token };
   }
 
-  async logout(sessionId: string) {
-    await this.sessionService.deleteSession(sessionId);
+  async logout(sessionId: string, userId: string) {
+    await this.sessionService.deleteSessionById(sessionId, userId);
   }
 
   async logoutAll(userId: string) {

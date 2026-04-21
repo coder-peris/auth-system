@@ -1,4 +1,16 @@
-import { Controller, Post, Get, Body, Res, Req, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Res,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  Delete,
+  Param,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -11,6 +23,7 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { SessionService } from './session.service';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -29,7 +42,10 @@ function clearSessionCookie(res: Response) {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly sessionService: SessionService,
+  ) {}
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -68,8 +84,12 @@ export class AuthController {
   @Post('logout')
   @UseGuards(AuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(@SessionId() sessionId: string, @Res({ passthrough: true }) res: Response) {
-    await this.authService.logout(sessionId);
+  async logout(
+    @SessionId() sessionId: string,
+    @CurrentUser() user: User,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.logout(sessionId, user.id);
     clearSessionCookie(res);
     return { message: 'Logged out successfully' };
   }
@@ -115,5 +135,19 @@ export class AuthController {
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto.email, dto.otp, dto.newPassword, dto.logoutAll);
     return { message: 'Password reset successfully' };
+  }
+
+  @Get('sessions')
+  @UseGuards(AuthGuard)
+  async getSessions(@CurrentUser() user: User) {
+    return this.sessionService.getUserSessions(user.id);
+  }
+
+  @Delete('sessions/:id')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async revokeSession(@Param('id') sessionId: string, @CurrentUser() user: User) {
+    await this.sessionService.deleteSessionById(sessionId, user.id);
+    return { message: 'Session revoked successfully' };
   }
 }

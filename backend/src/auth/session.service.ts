@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import crypto from 'crypto';
 
@@ -54,10 +54,6 @@ export class SessionService {
     return session;
   }
 
-  async deleteSession(sessionId: string) {
-    await this.prisma.session.delete({ where: { id: sessionId } });
-  }
-
   async deleteAllUserSessions(userId: string) {
     await this.prisma.session.deleteMany({ where: { userId } });
   }
@@ -66,5 +62,29 @@ export class SessionService {
     await this.prisma.session.deleteMany({
       where: { userId, id: { not: sessionId } },
     });
+  }
+
+  async getUserSessions(userId: string) {
+    return this.prisma.session.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        ip: true,
+        userAgent: true,
+        createdAt: true,
+        lastActiveAt: true,
+      },
+      orderBy: { lastActiveAt: 'desc' },
+    });
+  }
+
+  async deleteSessionById(sessionId: string, userId: string) {
+    const session = await this.prisma.session.findFirst({
+      where: { id: sessionId, userId },
+    });
+
+    if (!session) throw new NotFoundException('Session not found');
+
+    await this.prisma.session.delete({ where: { id: sessionId } });
   }
 }
