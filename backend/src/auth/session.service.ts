@@ -39,6 +39,8 @@ export class SessionService {
 
     if (!session) return null;
 
+    if (session.isTwoFactorPending) return null;
+
     const expiry = new Date(session.lastActiveAt.getTime() + SESSION_TTL_MS);
     if (expiry < new Date()) {
       await this.prisma.session.delete({ where: { id: session.id } });
@@ -86,5 +88,28 @@ export class SessionService {
     if (!session) throw new NotFoundException('Session not found');
 
     await this.prisma.session.delete({ where: { id: sessionId } });
+  }
+
+  async createPendingSession(userId: string, ip?: string, userAgent?: string) {
+    const token = generateToken();
+
+    const session = await this.prisma.session.create({
+      data: {
+        userId,
+        tokenHash: hashToken(token),
+        ip,
+        userAgent,
+        isTwoFactorPending: true,
+      },
+    });
+
+    return { token, sessionId: session.id };
+  }
+
+  async activateSession(sessionId: string) {
+    await this.prisma.session.update({
+      where: { id: sessionId },
+      data: { isTwoFactorPending: false },
+    });
   }
 }

@@ -6,6 +6,7 @@ import argon2 from 'argon2';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { OtpService } from './otp.service';
+import { ChangePasswordDto, SessionLogoutOption } from './dto/change-password.dto';
 import { SessionService } from './session.service';
 
 const MAX_FAILED_ATTEMPTS = 10;
@@ -81,8 +82,33 @@ export class AuthService {
       data: { failedLoginAttempts: 0, lockedUntil: null },
     });
 
+    if (user.twoFactorMethod === 'EMAIL') {
+      const { token, sessionId } = await this.sessionService.createPendingSession(user.id, ip, userAgent);
+      const otp = await this.otpService.createOtp(user.email, OtpTokenType.TWO_FACTOR);
+      await this.mailService.sendMail(
+        user.email,
+        'Your 2FA code',
+        `<p>Your verification code is:</p><h2>${otp}</h2><p>Expires in 15 minutes.</p>`,
+      );
+      return { twoFactorRequired: true, pendingSessionId: sessionId, token };
+    }
+
     const token = await this.sessionService.createSession(user.id, ip, userAgent);
-    return { user, token };
+    return { twoFactorRequired: false, pendingSessionId: null, token };
+  }
+
+  async verify2faEmail(pendingSessionId: string, otp: string) {
+    const session = await this.prisma.session.findFirst({
+      where: { id: pendingSessionId, isTwoFactorPending: true },
+      include: { user: true },
+    });
+
+    if (!session) throw new UnauthorizedException('Invalid or expired 2FA session');
+
+    const valid = await this.otpService.validateOtp(session.user.email, otp, OtpTokenType.TWO_FACTOR);
+    if (!valid) throw new UnauthorizedException('Invalid or expired OTP');
+
+    await this.sessionService.activateSession(pendingSessionId);
   }
 
   async logout(sessionId: string, userId: string) {
@@ -186,5 +212,25 @@ export class AuthService {
 
     const sessionToken = await this.sessionService.createSession(user.id, ip, userAgent);
     return sessionToken;
+  }
+
+  async changePassword(userId: string, sessionId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.password) throw new UnauthorizedException('Invalid credentials');
+
+    const passwordValid = await argon2.verify(user.password, dto.currentPassword);
+    if (!passwordValid) throw new UnauthorizedException('Invalid credentials');
+
+    const hashedPassword = await argon2.hash(dto.newPassword);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    if (dto.sessionOption === SessionLogoutOption.LOGOUT_ALL) {
+      await this.sessionService.deleteAllUserSessions(userId);
+    } else if (dto.sessionOption === SessionLogoutOption.LOGOUT_OTHERS) {
+      await this.sessionService.deleteAllExcept(userId, sessionId);
+    }
   }
 }

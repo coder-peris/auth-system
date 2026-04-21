@@ -25,6 +25,8 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { MagicLinkDto, MagicLinkVerifyDto } from './dto/magic-link.dto';
 import { SessionService } from './session.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { Verify2faEmailDto } from './dto/verify-2fa.dto';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -74,12 +76,9 @@ export class AuthController {
   ) {
     const ip = req.ip;
     const userAgent = req.headers['user-agent'];
-
-    const { user, token } = await this.authService.login(dto, ip, userAgent);
-
-    setSessionCookie(res, token);
-
-    return { message: 'Logged in successfully', user };
+    const { twoFactorRequired, pendingSessionId, token } = await this.authService.login(dto, ip, userAgent);
+    if (token) setSessionCookie(res, token);
+    return { message: 'Logged in successfully', twoFactorRequired, pendingSessionId };
   }
 
   @Post('logout')
@@ -174,5 +173,24 @@ export class AuthController {
     );
     setSessionCookie(res, sessionToken);
     return { message: 'Logged in successfully' };
+  }
+
+  @Post('change-password')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @Body() dto: ChangePasswordDto,
+    @CurrentUser() user: User,
+    @SessionId() sessionId: string,
+  ) {
+    await this.authService.changePassword(user.id, sessionId, dto);
+    return { message: 'Password changed successfully' };
+  }
+
+  @Post('2fa/email/verify')
+  @HttpCode(HttpStatus.OK)
+  async verify2faEmail(@Body() dto: Verify2faEmailDto) {
+    await this.authService.verify2faEmail(dto.pendingSessionId, dto.otp);
+    return { message: 'Two factor authentication successful' };
   }
 }
