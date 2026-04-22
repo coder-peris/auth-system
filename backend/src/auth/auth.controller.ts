@@ -26,7 +26,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { MagicLinkDto, MagicLinkVerifyDto } from './dto/magic-link.dto';
 import { SessionService } from './session.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { Verify2faEmailDto } from './dto/verify-2fa.dto';
+import { Confirm2faTotpDto, Verify2faEmailDto, Verify2faTotpDto } from './dto/verify-2fa.dto';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -191,6 +191,28 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verify2faEmail(@Body() dto: Verify2faEmailDto) {
     await this.authService.verify2faEmail(dto.pendingSessionId, dto.otp);
+    return { message: 'Two factor authentication successful' };
+  }
+
+  @Post('2fa/totp/setup')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async setup2faTotp(@CurrentUser() user: User) {
+    return this.authService.setup2faTotp(user.id);
+  }
+
+  @Post('2fa/totp/confirm')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async confirm2faTotp(@Body() dto: Confirm2faTotpDto, @CurrentUser() user: User) {
+    await this.authService.confirm2faTotp(user.id, dto.code);
+    return { message: 'TOTP 2FA enabled successfully' };
+  }
+
+  @Post('2fa/totp/verify')
+  @HttpCode(HttpStatus.OK)
+  async verify2faTotp(@Body() dto: Verify2faTotpDto) {
+    await this.authService.verify2faTotp(dto.pendingSessionId, dto.code);
     return { message: 'Two factor authentication successful' };
   }
 }

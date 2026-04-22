@@ -1,12 +1,13 @@
 import { MailService } from '@/mail/mail.service';
 import { OtpTokenType } from '@/prisma/generated/enums';
 import { PrismaService } from '@/prisma/prisma.service';
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import argon2 from 'argon2';
+import { generateSecret, generateURI, verify } from 'otplib';
+import { ChangePasswordDto, SessionLogoutOption } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { OtpService } from './otp.service';
-import { ChangePasswordDto, SessionLogoutOption } from './dto/change-password.dto';
 import { SessionService } from './session.service';
 
 const MAX_FAILED_ATTEMPTS = 10;
@@ -90,6 +91,11 @@ export class AuthService {
         'Your 2FA code',
         `<p>Your verification code is:</p><h2>${otp}</h2><p>Expires in 15 minutes.</p>`,
       );
+      return { twoFactorRequired: true, pendingSessionId: sessionId, token };
+    }
+
+    if (user.twoFactorMethod === 'TOTP') {
+      const { token, sessionId } = await this.sessionService.createPendingSession(user.id, ip, userAgent);
       return { twoFactorRequired: true, pendingSessionId: sessionId, token };
     }
 
@@ -232,5 +238,54 @@ export class AuthService {
     } else if (dto.sessionOption === SessionLogoutOption.LOGOUT_OTHERS) {
       await this.sessionService.deleteAllExcept(userId, sessionId);
     }
+  }
+
+  async setup2faTotp(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+    if (!user.isVerified) throw new ForbiddenException('Email not verified');
+    if (user.twoFactorMethod === 'TOTP') throw new ConflictException('TOTP already enabled');
+
+    const secret = generateSecret();
+    const otpauthUrl = generateURI({
+      issuer: 'Auth System',
+      label: user.email,
+      secret,
+    });
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { totpSecret: secret },
+    });
+
+    return { otpauthUrl };
+  }
+
+  async confirm2faTotp(userId: string, code: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.totpSecret) throw new UnauthorizedException('TOTP setup not initiated');
+
+    const result = await verify({ secret: user.totpSecret, token: code });
+    if (!result.valid) throw new UnauthorizedException('Invalid TOTP code');
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorMethod: 'TOTP' },
+    });
+  }
+
+  async verify2faTotp(pendingSessionId: string, code: string) {
+    const session = await this.prisma.session.findFirst({
+      where: { id: pendingSessionId, isTwoFactorPending: true },
+      include: { user: true },
+    });
+
+    if (!session) throw new UnauthorizedException('Invalid or expired 2FA session');
+    if (!session.user.totpSecret) throw new UnauthorizedException('TOTP not configured');
+
+    const result = await verify({ secret: session.user.totpSecret, token: code });
+    if (!result.valid) throw new UnauthorizedException('Invalid TOTP code');
+
+    await this.sessionService.activateSession(pendingSessionId);
   }
 }
