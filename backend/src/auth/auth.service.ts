@@ -9,6 +9,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { OtpService } from './otp.service';
 import { SessionService } from './session.service';
+import { ChangeEmailDto } from './dto/change-email.dto';
 
 const MAX_FAILED_ATTEMPTS = 10;
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -287,5 +288,52 @@ export class AuthService {
     if (!result.valid) throw new UnauthorizedException('Invalid TOTP code');
 
     await this.sessionService.activateSession(pendingSessionId);
+  }
+
+  async requestChangeEmail(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+    if (!user.isVerified) throw new ForbiddenException('Only verified users can use this endpoint');
+
+    const otp = await this.otpService.createOtp(user.email, OtpTokenType.TWO_FACTOR);
+    await this.mailService.sendMail(
+      user.email,
+      'Change email verification',
+      `<p>Your verification code is:</p><h2>${otp}</h2><p>Expires in 15 minutes.</p>`,
+    );
+  }
+
+  async changeEmail(userId: string, dto: ChangeEmailDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.newEmail } });
+    if (existing) throw new ConflictException('Email already in use');
+
+    if (!user.isVerified) {
+      // unverified — verify password
+      if (!dto.password) throw new UnauthorizedException('Password required');
+      if (!user.password) throw new UnauthorizedException('Invalid credentials');
+      const passwordValid = await argon2.verify(user.password, dto.password);
+      if (!passwordValid) throw new UnauthorizedException('Invalid credentials');
+    } else {
+      // verified — validate OTP
+      if (!dto.otp) throw new UnauthorizedException('OTP required');
+      const valid = await this.otpService.validateOtp(user.email, dto.otp, OtpTokenType.TWO_FACTOR);
+      if (!valid) throw new UnauthorizedException('Invalid or expired OTP');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { email: dto.newEmail, isVerified: false },
+    });
+
+    // send verification OTP to new email
+    const otp = await this.otpService.createOtp(dto.newEmail, OtpTokenType.EMAIL_VERIFICATION);
+    await this.mailService.sendMail(
+      dto.newEmail,
+      'Verify your new email',
+      `<p>Your verification code is:</p><h2>${otp}</h2><p>Expires in 15 minutes.</p>`,
+    );
   }
 }

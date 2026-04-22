@@ -10,6 +10,7 @@ import {
   HttpStatus,
   Delete,
   Param,
+  Patch,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
@@ -27,6 +28,7 @@ import { MagicLinkDto, MagicLinkVerifyDto } from './dto/magic-link.dto';
 import { SessionService } from './session.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Confirm2faTotpDto, Verify2faEmailDto, Verify2faTotpDto } from './dto/verify-2fa.dto';
+import { ChangeEmailDto } from './dto/change-email.dto';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -214,5 +216,21 @@ export class AuthController {
   async verify2faTotp(@Body() dto: Verify2faTotpDto) {
     await this.authService.verify2faTotp(dto.pendingSessionId, dto.code);
     return { message: 'Two factor authentication successful' };
+  }
+
+  @Post('change-email/request')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async requestChangeEmail(@CurrentUser() user: User) {
+    await this.authService.requestChangeEmail(user.id);
+    return { message: 'Verification OTP sent to current email' };
+  }
+
+  @Patch('change-email')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changeEmail(@Body() dto: ChangeEmailDto, @CurrentUser() user: User) {
+    await this.authService.changeEmail(user.id, dto);
+    return { message: 'Email changed successfully. Please verify your new email.' };
   }
 }
