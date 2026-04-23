@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import crypto from 'crypto';
 
-const SESSION_TTL_MS = 15 * 24 * 60 * 60 * 1000; // 15 days
+export const SESSION_TTL_MS = 15 * 24 * 60 * 60 * 1000; // 15 days
 
 function generateToken(): string {
   return crypto.randomBytes(32).toString('hex');

@@ -7,11 +7,12 @@ import { RolesGuard } from './guards/roles.guard';
 import { OtpService } from './otp.service';
 import { MailModule } from '@/mail/mail.module';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { CleanupService } from './cleanup.service';
 
 @Module({
   imports: [MailModule],
   controllers: [AuthController],
-  providers: [AuthService, SessionService, AuthGuard, RolesGuard, OtpService, GoogleStrategy],
+  providers: [AuthService, SessionService, AuthGuard, RolesGuard, OtpService, GoogleStrategy, CleanupService],
   exports: [AuthService, SessionService],
 })
 export class AuthModule {}
