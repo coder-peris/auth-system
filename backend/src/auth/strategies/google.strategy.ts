@@ -1,9 +1,10 @@
+import { AuthProvider } from '@/prisma/generated/enums';
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback, Profile } from 'passport-google-oauth20';
 
 @Injectable()
-export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+export class GoogleStrategy extends PassportStrategy(Strategy, AuthProvider.GOOGLE.toLowerCase()) {
   constructor() {
     super({
       clientID: process.env.GOOGLE_CLIENT_ID!,

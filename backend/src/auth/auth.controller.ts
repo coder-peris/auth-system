@@ -264,4 +264,32 @@ export class AuthController {
     setSessionCookie(res, token);
     res.redirect(process.env.FRONTEND_URL!);
   }
+
+  @Get('github')
+  @UseGuards(PassportAuthGuard('github'))
+  async githubAuth() {}
+
+  @Get('github/callback')
+  @UseGuards(PassportAuthGuard('github'))
+  async githubCallback(@Req() req: AuthenticatedRequest, @Res() res: Response) {
+    const profile = req.user as unknown as {
+      providerId: string;
+      email: string;
+      name?: string;
+      avatarUrl?: string;
+    };
+
+    const token = await this.authService.oauthLogin(
+      AuthProvider.GITHUB,
+      profile.providerId,
+      profile.email,
+      profile.name,
+      profile.avatarUrl,
+      req.ip,
+      req.headers['user-agent'],
+    );
+
+    setSessionCookie(res, token);
+    res.redirect(process.env.FRONTEND_URL!);
+  }
 }
