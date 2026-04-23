@@ -1,5 +1,5 @@
 import { MailService } from '@/mail/mail.service';
-import { OtpTokenType } from '@/prisma/generated/enums';
+import { AuthProvider, OtpTokenType } from '@/prisma/generated/enums';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import argon2 from 'argon2';
@@ -335,5 +335,47 @@ export class AuthService {
       'Verify your new email',
       `<p>Your verification code is:</p><h2>${otp}</h2><p>Expires in 15 minutes.</p>`,
     );
+  }
+
+  async oauthLogin(
+    provider: AuthProvider,
+    providerId: string,
+    email: string,
+    name?: string,
+    avatarUrl?: string,
+    ip?: string,
+    userAgent?: string,
+  ) {
+    let user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      // new user — create with provider
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          name,
+          avatarUrl,
+          isVerified: true,
+          userProviders: {
+            create: { provider, providerId },
+          },
+        },
+      });
+    } else {
+      // existing user — check if provider already linked
+      const existingProvider = await this.prisma.userProvider.findUnique({
+        where: { userId_provider: { userId: user.id, provider } },
+      });
+
+      if (!existingProvider) {
+        // merge — link provider to existing account
+        await this.prisma.userProvider.create({
+          data: { userId: user.id, provider, providerId },
+        });
+      }
+    }
+
+    const token = await this.sessionService.createSession(user.id, ip, userAgent);
+    return token;
   }
 }

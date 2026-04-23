@@ -44,8 +44,6 @@ model User {
   name                String?
   avatarUrl           String?
   role                Role            @default(USER)
-  provider            AuthProvider    @default(LOCAL)
-  providerId          String?
   isVerified          Boolean         @default(false)
   twoFactorMethod     TwoFactorMethod @default(NONE)
   totpSecret          String?
@@ -54,8 +52,21 @@ model User {
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 
-  sessions  Session[]
-  otpTokens OtpToken[]
+  sessions      Session[]
+  otpTokens     OtpToken[]
+  userProviders UserProvider[]
+}
+
+model UserProvider {
+  userId     String
+  provider   AuthProvider
+  providerId String
+  createdAt  DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, provider])
+  @@unique([provider, providerId])
 }
 
 model Session {

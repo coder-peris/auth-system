@@ -1,34 +1,35 @@
+import { AuthProvider, type User } from '@/prisma/generated/client';
 import {
-  Controller,
-  Post,
-  Get,
   Body,
-  Res,
-  Req,
-  UseGuards,
+  Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
-  Delete,
   Param,
   Patch,
+  Post,
+  Req,
+  Res,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser, SessionId } from './decorators/current-user.decorator';
-import type { AuthenticatedRequest } from './types/request.type';
-import type { User } from '@/prisma/generated/client';
-import { ResendVerificationDto } from './dto/resend-verification.dto';
-import { VerifyEmailDto } from './dto/verify-email.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { MagicLinkDto, MagicLinkVerifyDto } from './dto/magic-link.dto';
-import { SessionService } from './session.service';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { Confirm2faTotpDto, Verify2faEmailDto, Verify2faTotpDto } from './dto/verify-2fa.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { LoginDto } from './dto/login.dto';
+import { MagicLinkDto, MagicLinkVerifyDto } from './dto/magic-link.dto';
+import { RegisterDto } from './dto/register.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { Confirm2faTotpDto, Verify2faEmailDto, Verify2faTotpDto } from './dto/verify-2fa.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { AuthGuard } from './guards/auth.guard';
+import { SessionService } from './session.service';
+import type { AuthenticatedRequest } from './types/request.type';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -232,5 +233,35 @@ export class AuthController {
   async changeEmail(@Body() dto: ChangeEmailDto, @CurrentUser() user: User) {
     await this.authService.changeEmail(user.id, dto);
     return { message: 'Email changed successfully. Please verify your new email.' };
+  }
+
+  @Get('google')
+  @UseGuards(PassportAuthGuard('google'))
+  async googleAuth() {
+    // redirects to Google — passport handles this
+  }
+
+  @Get('google/callback')
+  @UseGuards(PassportAuthGuard('google'))
+  async googleCallback(@Req() req: AuthenticatedRequest, @Res() res: Response) {
+    const profile = req.user as unknown as {
+      providerId: string;
+      email: string;
+      name?: string;
+      avatarUrl?: string;
+    };
+
+    const token = await this.authService.oauthLogin(
+      AuthProvider.GOOGLE,
+      profile.providerId,
+      profile.email,
+      profile.name,
+      profile.avatarUrl,
+      req.ip,
+      req.headers['user-agent'],
+    );
+
+    setSessionCookie(res, token);
+    res.redirect(process.env.FRONTEND_URL!);
   }
 }
