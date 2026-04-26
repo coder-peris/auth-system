@@ -9,8 +9,16 @@ void (async () => {
   const app = await NestFactory.create(AppModule);
   const logger = new LoggerMiddleware();
 
+  app.enableCors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+
   app.use(cookieParser());
   app.use(logger.use.bind(logger));
+
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 

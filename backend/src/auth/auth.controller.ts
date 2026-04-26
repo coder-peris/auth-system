@@ -1,4 +1,4 @@
-import { AuthProvider, type User } from '@/prisma/generated/client';
+import { AuthProvider, Role, type User } from '@/prisma/generated/client';
 import {
   Body,
   Controller,
@@ -33,17 +33,26 @@ import type { AuthenticatedRequest } from './types/request.type';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  secure: true,
+  sameSite: 'none' as const,
   maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
 };
 
-function setSessionCookie(res: Response, token: string) {
+function setSessionCookie(res: Response, token: string, role: Role = Role.USER) {
   res.cookie('session_token', token, COOKIE_OPTIONS);
+
+  const encoded_role = Buffer.from(JSON.stringify({ role })).toString('base64url');
+  res.cookie('authenticated', encoded_role, {
+    httpOnly: false,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 15 * 24 * 60 * 60 * 1000,
+  });
 }
 
 function clearSessionCookie(res: Response) {
   res.clearCookie('session_token');
+  res.clearCookie('authenticated');
 }
 
 @Controller('auth')
@@ -65,7 +74,7 @@ export class AuthController {
 
     const { user, token } = await this.authService.register(dto, ip, userAgent);
 
-    setSessionCookie(res, token);
+    setSessionCookie(res, token, user.role);
 
     return { message: 'Registered successfully', user };
   }
@@ -79,9 +88,10 @@ export class AuthController {
   ) {
     const ip = req.ip;
     const userAgent = req.headers['user-agent'];
-    const { twoFactorRequired, pendingSessionId, token } = await this.authService.login(dto, ip, userAgent);
-    if (token) setSessionCookie(res, token);
-    return { message: 'Logged in successfully', twoFactorRequired, pendingSessionId };
+    const { twoFactorRequired, twoFactorMethod, pendingSessionId, token, user } =
+      await this.authService.login(dto, ip, userAgent);
+    setSessionCookie(res, token, user.role);
+    return { message: 'Logged in successfully', twoFactorRequired, twoFactorMethod, pendingSessionId };
   }
 
   @Post('logout')
@@ -92,7 +102,7 @@ export class AuthController {
     @CurrentUser() user: User,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await this.authService.logout(sessionId, user.id);
+    await this.sessionService.deleteSessionById(sessionId, user.id);
     clearSessionCookie(res);
     return { message: 'Logged out successfully' };
   }
@@ -101,7 +111,7 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @HttpCode(HttpStatus.OK)
   async logoutAll(@CurrentUser() user: User, @Res({ passthrough: true }) res: Response) {
-    await this.authService.logoutAll(user.id);
+    await this.sessionService.deleteAllUserSessions(user.id);
     clearSessionCookie(res);
     return { message: 'Logged out from all devices' };
   }
@@ -168,13 +178,13 @@ export class AuthController {
     @Req() req: AuthenticatedRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const sessionToken = await this.authService.magicLinkVerify(
+    const { sessionToken, user } = await this.authService.magicLinkVerify(
       dto.email,
       dto.token,
       req.ip,
       req.headers['user-agent'],
     );
-    setSessionCookie(res, sessionToken);
+    setSessionCookie(res, sessionToken, user.role);
     return { message: 'Logged in successfully' };
   }
 
@@ -251,7 +261,7 @@ export class AuthController {
       avatarUrl?: string;
     };
 
-    const token = await this.authService.oauthLogin(
+    const { token, user } = await this.authService.oauthLogin(
       AuthProvider.GOOGLE,
       profile.providerId,
       profile.email,
@@ -261,7 +271,7 @@ export class AuthController {
       req.headers['user-agent'],
     );
 
-    setSessionCookie(res, token);
+    setSessionCookie(res, token, user.role);
     res.redirect(process.env.FRONTEND_URL!);
   }
 
@@ -279,7 +289,7 @@ export class AuthController {
       avatarUrl?: string;
     };
 
-    const token = await this.authService.oauthLogin(
+    const { token, user } = await this.authService.oauthLogin(
       AuthProvider.GITHUB,
       profile.providerId,
       profile.email,
@@ -289,7 +299,7 @@ export class AuthController {
       req.headers['user-agent'],
     );
 
-    setSessionCookie(res, token);
+    setSessionCookie(res, token, user.role);
     res.redirect(process.env.FRONTEND_URL!);
   }
 }

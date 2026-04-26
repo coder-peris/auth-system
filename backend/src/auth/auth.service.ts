@@ -1,5 +1,5 @@
 import { MailService } from '@/mail/mail.service';
-import { AuthProvider, OtpTokenType } from '@/prisma/generated/enums';
+import { AuthProvider, OtpTokenType, TwoFactorMethod } from '@/prisma/generated/enums';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import argon2 from 'argon2';
@@ -84,7 +84,7 @@ export class AuthService {
       data: { failedLoginAttempts: 0, lockedUntil: null },
     });
 
-    if (user.twoFactorMethod === 'EMAIL') {
+    if (user.twoFactorMethod === TwoFactorMethod.EMAIL) {
       const { token, sessionId } = await this.sessionService.createPendingSession(user.id, ip, userAgent);
       const otp = await this.otpService.createOtp(user.email, OtpTokenType.TWO_FACTOR);
       await this.mailService.sendMail(
@@ -92,16 +92,29 @@ export class AuthService {
         'Your 2FA code',
         `<p>Your verification code is:</p><h2>${otp}</h2><p>Expires in 15 minutes.</p>`,
       );
-      return { twoFactorRequired: true, pendingSessionId: sessionId, token };
+      return {
+        twoFactorRequired: true,
+        twoFactorMethod: TwoFactorMethod.EMAIL,
+        pendingSessionId: sessionId,
+        token,
+        user,
+      };
     }
 
-    if (user.twoFactorMethod === 'TOTP') {
+    if (user.twoFactorMethod === TwoFactorMethod.TOTP) {
       const { token, sessionId } = await this.sessionService.createPendingSession(user.id, ip, userAgent);
-      return { twoFactorRequired: true, pendingSessionId: sessionId, token };
+      return {
+        twoFactorRequired: true,
+        twoFactorMethod: TwoFactorMethod.TOTP,
+        pendingSessionId: sessionId,
+        token,
+        user,
+      };
     }
 
     const token = await this.sessionService.createSession(user.id, ip, userAgent);
-    return { twoFactorRequired: false, pendingSessionId: null, token };
+
+    return { twoFactorRequired: false, token, user };
   }
 
   async verify2faEmail(pendingSessionId: string, otp: string) {
@@ -116,14 +129,6 @@ export class AuthService {
     if (!valid) throw new UnauthorizedException('Invalid or expired OTP');
 
     await this.sessionService.activateSession(pendingSessionId);
-  }
-
-  async logout(sessionId: string, userId: string) {
-    await this.sessionService.deleteSessionById(sessionId, userId);
-  }
-
-  async logoutAll(userId: string) {
-    await this.sessionService.deleteAllUserSessions(userId);
   }
 
   async getMe(userId: string) {
@@ -218,7 +223,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Invalid or expired magic link');
 
     const sessionToken = await this.sessionService.createSession(user.id, ip, userAgent);
-    return sessionToken;
+    return { sessionToken, user };
   }
 
   async changePassword(userId: string, sessionId: string, dto: ChangePasswordDto) {
@@ -376,6 +381,6 @@ export class AuthService {
     }
 
     const token = await this.sessionService.createSession(user.id, ip, userAgent);
-    return token;
+    return { token, user };
   }
 }
