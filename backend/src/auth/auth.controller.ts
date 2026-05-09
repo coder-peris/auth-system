@@ -1,4 +1,4 @@
-import { AuthProvider, Role, type User } from '@/prisma/generated/client';
+import { AuthProvider, type User } from '@/prisma/generated/client';
 import {
   Body,
   Controller,
@@ -38,21 +38,12 @@ const COOKIE_OPTIONS = {
   maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
 };
 
-function setSessionCookie(res: Response, token: string, role: Role = Role.USER) {
+function setSessionCookie(res: Response, token: string) {
   res.cookie('session_token', token, COOKIE_OPTIONS);
-
-  const encoded_role = Buffer.from(JSON.stringify({ role })).toString('base64url');
-  res.cookie('authenticated', encoded_role, {
-    httpOnly: false,
-    secure: true,
-    sameSite: 'none',
-    maxAge: 15 * 24 * 60 * 60 * 1000,
-  });
 }
 
 function clearSessionCookie(res: Response) {
   res.clearCookie('session_token');
-  res.clearCookie('authenticated');
 }
 
 @Controller('auth')
@@ -74,7 +65,7 @@ export class AuthController {
 
     const { user, token } = await this.authService.register(dto, ip, userAgent);
 
-    setSessionCookie(res, token, user.role);
+    setSessionCookie(res, token);
 
     return { message: 'Registered successfully', user };
   }
@@ -88,9 +79,12 @@ export class AuthController {
   ) {
     const ip = req.ip;
     const userAgent = req.headers['user-agent'];
-    const { twoFactorRequired, twoFactorMethod, pendingSessionId, token, user } =
-      await this.authService.login(dto, ip, userAgent);
-    setSessionCookie(res, token, user.role);
+    const { twoFactorRequired, twoFactorMethod, pendingSessionId, token } = await this.authService.login(
+      dto,
+      ip,
+      userAgent,
+    );
+    setSessionCookie(res, token);
     return { message: 'Logged in successfully', twoFactorRequired, twoFactorMethod, pendingSessionId };
   }
 
@@ -178,13 +172,13 @@ export class AuthController {
     @Req() req: AuthenticatedRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { sessionToken, user } = await this.authService.magicLinkVerify(
+    const sessionToken = await this.authService.magicLinkVerify(
       dto.email,
       dto.token,
       req.ip,
       req.headers['user-agent'],
     );
-    setSessionCookie(res, sessionToken, user.role);
+    setSessionCookie(res, sessionToken);
     return { message: 'Logged in successfully' };
   }
 
@@ -261,7 +255,7 @@ export class AuthController {
       avatarUrl?: string;
     };
 
-    const { token, user } = await this.authService.oauthLogin(
+    const token = await this.authService.oauthLogin(
       AuthProvider.GOOGLE,
       profile.providerId,
       profile.email,
@@ -271,7 +265,7 @@ export class AuthController {
       req.headers['user-agent'],
     );
 
-    setSessionCookie(res, token, user.role);
+    setSessionCookie(res, token);
     res.redirect(process.env.FRONTEND_URL!);
   }
 
@@ -289,7 +283,7 @@ export class AuthController {
       avatarUrl?: string;
     };
 
-    const { token, user } = await this.authService.oauthLogin(
+    const token = await this.authService.oauthLogin(
       AuthProvider.GITHUB,
       profile.providerId,
       profile.email,
@@ -299,7 +293,7 @@ export class AuthController {
       req.headers['user-agent'],
     );
 
-    setSessionCookie(res, token, user.role);
+    setSessionCookie(res, token);
     res.redirect(process.env.FRONTEND_URL!);
   }
 }

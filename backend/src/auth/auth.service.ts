@@ -97,7 +97,6 @@ export class AuthService {
         twoFactorMethod: TwoFactorMethod.EMAIL,
         pendingSessionId: sessionId,
         token,
-        user,
       };
     }
 
@@ -108,13 +107,12 @@ export class AuthService {
         twoFactorMethod: TwoFactorMethod.TOTP,
         pendingSessionId: sessionId,
         token,
-        user,
       };
     }
 
     const token = await this.sessionService.createSession(user.id, ip, userAgent);
 
-    return { twoFactorRequired: false, token, user };
+    return { twoFactorRequired: false, token };
   }
 
   async verify2faEmail(pendingSessionId: string, otp: string) {
@@ -206,7 +204,7 @@ export class AuthService {
     if (!user) return;
 
     const token = await this.otpService.createUrlToken(email, OtpTokenType.MAGIC_LINK);
-    const link = `${process.env.FRONTEND_URL}/auth/magic-link?token=${token}&email=${email}`;
+    const link = `${process.env.FRONTEND_URL}/magic-link-verify?token=${token}&email=${email}`;
 
     await this.mailService.sendMail(
       email,
@@ -223,7 +221,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Invalid or expired magic link');
 
     const sessionToken = await this.sessionService.createSession(user.id, ip, userAgent);
-    return { sessionToken, user };
+    return sessionToken;
   }
 
   async changePassword(userId: string, sessionId: string, dto: ChangePasswordDto) {
@@ -381,6 +379,6 @@ export class AuthService {
     }
 
     const token = await this.sessionService.createSession(user.id, ip, userAgent);
-    return { token, user };
+    return token;
   }
 }
