@@ -5,16 +5,16 @@ import { useRouter } from "next/navigation"
 import { useUserStore } from "@/store/user.store"
 import { Loader2 } from "lucide-react"
 
-export default function RootPage() {
+export function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useUserStore()
   const router = useRouter()
 
   useEffect(() => {
     if (!isLoading) {
-      if (user) {
-        router.push("/dashboard")
-      } else {
+      if (!user) {
         router.push("/login")
+      } else if (user.role !== "ADMIN") {
+        router.push("/dashboard")
       }
     }
   }, [user, isLoading, router])
@@ -27,5 +27,9 @@ export default function RootPage() {
     )
   }
 
-  return null
+  if (!user || user.role !== "ADMIN") {
+    return null
+  }
+
+  return <>{children}</>
 }
