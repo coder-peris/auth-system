@@ -2,18 +2,21 @@ import { loginUser } from "@/services/auth.service";
 import { useMutation } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/providers/user-provider";
 
 export const useLogin = () => {
   const router = useRouter();
+  const { refreshUser } = useUser();
 
   const mutation = useMutation({
     mutationFn: loginUser,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data.twoFactorRequired) {
         sessionStorage.setItem("pendingSessionId", data.pendingSessionId);
         router.push(`/2fa/${data.twoFactorMethod.toLowerCase()}`);
         return;
       }
+      await refreshUser();
       router.push("/dashboard");
     },
   });

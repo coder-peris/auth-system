@@ -41,6 +41,16 @@ export const resetPassword = async (data: {
   return res;
 };
 
+export const verifyEmail = async (email: string, otp: string) => {
+  const { data: res } = await api.post("/auth/verify-email", { email, otp });
+  return res;
+};
+
+export const resendVerification = async (email: string) => {
+  const { data: res } = await api.post("/auth/resend-verification", { email });
+  return res;
+};
+
 export const verify2FAEmail = async (pendingSessionId: string, otp: string) => {
   const { data: res } = await api.post("/auth/2fa/email/verify", {
     pendingSessionId,
@@ -69,5 +79,68 @@ export const logoutAll = async () => {
 
 export const getMe = async () => {
   const { data: res } = await api.get("/auth/me");
+  return res;
+};
+
+export const getCurrentUser = async () => {
+  const { data: res } = await api.get("/auth/me");
+  return res;
+};
+
+export const changePassword = async (data: {
+  currentPassword: string;
+  newPassword: string;
+  sessionOption: "LOGOUT_ALL" | "LOGOUT_OTHERS" | "DONT_LOGOUT";
+}) => {
+  const { data: res } = await api.post("/auth/change-password", data);
+  return res;
+};
+
+export const requestEmailChange = async () => {
+  const { data: res } = await api.post("/auth/change-email/request");
+  return res;
+};
+
+export const changeEmail = async (data: {
+  newEmail: string;
+  otp?: string;
+  password?: string;
+}) => {
+  const { data: res } = await api.patch("/auth/change-email", data);
+  return res;
+};
+
+export const getSessions = async () => {
+  const { data: res } = await api.get("/auth/sessions");
+  return res;
+};
+
+export const revokeSession = async (sessionId: string) => {
+  const { data: res } = await api.delete(`/auth/sessions/${sessionId}`);
+  return res;
+};
+
+export const setupTotp = async () => {
+  const { data: res } = await api.post("/auth/2fa/totp/setup");
+  return res;
+};
+
+export const confirmTotp = async (code: string) => {
+  const { data: res } = await api.post("/auth/2fa/totp/confirm", { code });
+  return res;
+};
+
+export const setup2FAEmail = async () => {
+  const { data: res } = await api.post("/auth/2fa/email/setup");
+  return res;
+};
+
+export const confirm2FAEmail = async (otp: string) => {
+  const { data: res } = await api.post("/auth/2fa/email/confirm", { otp });
+  return res;
+};
+
+export const disable2FA = async () => {
+  const { data: res } = await api.post("/auth/2fa/disable");
   return res;
 };

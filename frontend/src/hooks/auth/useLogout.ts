@@ -1,11 +1,11 @@
 import { logout, logoutAll } from "@/services/auth.service";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/auth-store";
+import { useUserStore } from "@/store/user.store";
 
 export const useLogout = () => {
   const router = useRouter();
-  const setUser = useAuthStore((state) => state.setUser);
+  const setUser = useUserStore((state) => state.setUser);
 
   const mutation = useMutation({
     mutationFn: logout,
@@ -23,7 +23,7 @@ export const useLogout = () => {
 
 export const useLogoutAll = () => {
   const router = useRouter();
-  const setUser = useAuthStore((state) => state.setUser);
+  const setUser = useUserStore((state) => state.setUser);
 
   const mutation = useMutation({
     mutationFn: logoutAll,

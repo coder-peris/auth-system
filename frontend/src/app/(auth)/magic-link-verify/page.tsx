@@ -5,29 +5,31 @@ import { useMutation } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LuLoader, LuCheck, LuTriangleAlert } from "react-icons/lu";
+import { LuLoader, LuTriangleAlert } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useUser } from "@/providers/user-provider";
 
 export default function MagicLinkVerifyPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading",
-  );
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
   const email = searchParams.get("email");
   const token = searchParams.get("token");
+  const { refreshUser } = useUser();
+
+  const [status, setStatus] = useState<"loading" | "error">(
+    !email || !token ? "error" : "loading",
+  );
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    !email || !token ? "Invalid magic link. Missing email or token." : null,
+  );
 
   const mutation = useMutation({
     mutationFn: ({ email, token }: { email: string; token: string }) =>
       verifyMagicLink(email, token),
-    onSuccess: () => {
-      setStatus("success");
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 2000);
+    onSuccess: async () => {
+      await refreshUser();
+      router.push("/dashboard");
     },
     onError: (error) => {
       setStatus("error");
@@ -45,14 +47,10 @@ export default function MagicLinkVerifyPage() {
   });
 
   useEffect(() => {
-    if (!email || !token) {
-      setStatus("error");
-      setErrorMessage("Invalid magic link. Missing email or token.");
-      return;
+    if (email && token) {
+      mutation.mutate({ email, token });
     }
-
-    mutation.mutate({ email, token });
-  }, []);
+  }, [email, token, mutation]);
 
   if (status === "loading") {
     return (
@@ -68,31 +66,6 @@ export default function MagicLinkVerifyPage() {
 
         <div className="mb-6 flex items-center justify-center">
           <LuLoader className="h-12 w-12 animate-spin" />
-        </div>
-      </>
-    );
-  }
-
-  if (status === "success") {
-    return (
-      <>
-        <div className="mb-6">
-          <h2 className="text-2xl mb-2 text-gray-900 dark:text-white">
-            Success!
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            You have been signed in successfully
-          </p>
-        </div>
-
-        <div className="mb-6 flex items-center justify-center rounded-full bg-green-100 dark:bg-green-950/40 p-4">
-          <LuCheck className="h-12 w-12 text-green-600 dark:text-green-400" />
-        </div>
-
-        <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
-          <p className="text-muted-foreground">
-            Redirecting you to dashboard...
-          </p>
         </div>
       </>
     );

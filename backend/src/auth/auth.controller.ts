@@ -194,6 +194,29 @@ export class AuthController {
     return { message: 'Password changed successfully' };
   }
 
+  @Post('2fa/email/setup')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async setup2faEmail(@CurrentUser() user: User) {
+    return await this.authService.setup2faEmail(user.id);
+  }
+
+  @Post('2fa/email/confirm')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async confirm2faEmail(@Body() dto: { otp: string }, @CurrentUser() user: User) {
+    await this.authService.confirm2faEmail(user.id, dto.otp);
+    return { message: 'Email 2FA enabled successfully' };
+  }
+
+  @Post('2fa/disable')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async disable2fa(@CurrentUser() user: User) {
+    await this.authService.disable2fa(user.id);
+    return { message: 'Two-factor authentication disabled' };
+  }
+
   @Post('2fa/email/verify')
   @HttpCode(HttpStatus.OK)
   async verify2faEmail(@Body() dto: Verify2faEmailDto) {

@@ -2,13 +2,16 @@ import { registerUser } from "@/services/auth.service";
 import { useMutation } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/providers/user-provider";
 
 export const useRegister = () => {
   const router = useRouter();
+  const { refreshUser } = useUser();
 
   const mutation = useMutation({
     mutationFn: registerUser,
-    onSuccess: () => {
+    onSuccess: async () => {
+      await refreshUser();
       router.push("/dashboard");
     },
   });

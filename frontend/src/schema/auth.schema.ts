@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+const email = z
+  .string()
+  .trim()
+  .min(1, "Email is required.")
+  .email("Please enter a valid email.")
+  .toLowerCase();
+
 export const registerSchema = z
   .object({
     name: z
@@ -7,16 +14,12 @@ export const registerSchema = z
       .trim()
       .min(1, "Name is required")
       .min(2, "Name is too short."),
-    email: z
-      .string()
-      .trim()
-      .min(1, "Email is required.")
-      .email("Please enter a valid email.")
-      .toLowerCase(),
+    email,
     password: z
       .string()
       .min(1, "Password is required.")
-      .min(8, "Password must be at least 8 characters."),
+      .min(8, "Password must be at least 8 characters.")
+      .max(25, "Password cannot exceed 25 characters."),
     confirmPassword: z.string().min(1, "Please confirm your password."),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -27,24 +30,14 @@ export const registerSchema = z
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const loginSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .min(1, "Email is required.")
-    .email("Please enter a valid email.")
-    .toLowerCase(),
+  email,
   password: z.string().min(1, "Password is required."),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export const emailSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .min(1, "Email is required.")
-    .email("Please enter a valid email.")
-    .toLowerCase(),
+  email,
 });
 
 export type EmailInput = z.infer<typeof emailSchema>;
@@ -61,20 +54,18 @@ export type OtpInput = z.infer<typeof otpSchema>;
 
 export const resetPasswordSchema = z
   .object({
-    email: z
-      .string()
-      .trim()
-      .min(1, "Email is required.")
-      .email("Please enter a valid email.")
-      .toLowerCase(),
+    email,
     otp: z
       .string()
       .trim()
       .min(1, "OTP is required.")
       .length(6, "OTP must be 6 digits."),
-    newPassword: z.string().min(8, "Password must be at least 8 characters."),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters.")
+      .max(25, "Password cannot exceed 25 characters."),
     confirmPassword: z.string().min(1, "Please confirm your password."),
-    logoutAll: z.boolean().default(false),
+    logoutAll: z.boolean(),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords do not match",
@@ -83,12 +74,33 @@ export const resetPasswordSchema = z
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters.")
+      .max(25, "Password cannot exceed 25 characters."),
+    confirmPassword: z.string().min(1, "Please confirm your password."),
+    sessionOption: z.enum(["LOGOUT_ALL", "LOGOUT_OTHERS", "DONT_LOGOUT"]),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+export const changeEmailSchema = z.object({
+  newEmail: email,
+  otp: z.string().optional(),
+  password: z.string().optional(),
+});
+
+export type ChangeEmailInput = z.infer<typeof changeEmailSchema>;
+
 export const totpSchema = z.object({
-  code: z
-    .string()
-    .trim()
-    .min(1, "Code is required.")
-    .length(6, "Code must be 6 digits."),
+  code: z.string().min(6, "Code must be 6 characters."),
 });
 
 export type TotpInput = z.infer<typeof totpSchema>;

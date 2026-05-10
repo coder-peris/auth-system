@@ -139,6 +139,7 @@ export class AuthService {
         avatarUrl: true,
         role: true,
         isVerified: true,
+        twoFactorMethod: true,
         createdAt: true,
       },
     });
@@ -226,10 +227,10 @@ export class AuthService {
 
   async changePassword(userId: string, sessionId: string, dto: ChangePasswordDto) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user || !user.password) throw new UnauthorizedException('Invalid credentials');
+    if (!user || !user.password) throw new UnauthorizedException('User not found');
 
     const passwordValid = await argon2.verify(user.password, dto.currentPassword);
-    if (!passwordValid) throw new UnauthorizedException('Invalid credentials');
+    if (!passwordValid) throw new UnauthorizedException('Current password is wrong');
 
     const hashedPassword = await argon2.hash(dto.newPassword);
     await this.prisma.user.update({
@@ -380,5 +381,40 @@ export class AuthService {
 
     const token = await this.sessionService.createSession(user.id, ip, userAgent);
     return token;
+  }
+
+  async setup2faEmail(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+    if (!user.isVerified) throw new ForbiddenException('Email not verified');
+
+    const otp = await this.otpService.createOtp(user.email, OtpTokenType.TWO_FACTOR);
+    await this.mailService.sendMail(
+      user.email,
+      'Enable 2FA Verification',
+      `<p>Your verification code to enable Email 2FA is:</p><h2>${otp}</h2><p>Expires in 15 minutes.</p>`,
+    );
+
+    return { message: 'Verification OTP sent to your email' };
+  }
+
+  async confirm2faEmail(userId: string, otp: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const valid = await this.otpService.validateOtp(user.email, otp, OtpTokenType.TWO_FACTOR);
+    if (!valid) throw new UnauthorizedException('Invalid or expired OTP');
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorMethod: TwoFactorMethod.EMAIL },
+    });
+  }
+
+  async disable2fa(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorMethod: TwoFactorMethod.NONE, totpSecret: null },
+    });
   }
 }

@@ -2,48 +2,41 @@
 
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { FaDesktop } from "react-icons/fa";
 import { IoMoonOutline, IoSunnyOutline } from "react-icons/io5";
 
+function useIsMounted() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
+const options = [
+  { value: "light", label: "Light", Icon: IoSunnyOutline },
+  { value: "dark", label: "Dark", Icon: IoMoonOutline },
+  { value: "system", label: "System", Icon: FaDesktop },
+];
+
 export default function SwitchTheme() {
   const { setTheme, theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  const setDarkTheme = () => setTheme("dark");
-  const setLightTheme = () => setTheme("light");
-  const setSystemTheme = () => setTheme("system");
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
+  const mounted = useIsMounted();
 
   return (
-    <div className="flex items-center gap-10 px-4 py-1 justify-center rounded-2xl border border-border">
-      <Button
-        variant="ghost"
-        onClick={setLightTheme}
-        className={`${mounted && theme === "light" ? "text-blue-400" : ""} rounded-lg`}
-      >
-        <IoSunnyOutline /> Light
-      </Button>
-
-      <Button
-        variant="ghost"
-        onClick={setDarkTheme}
-        className={`${mounted && theme === "dark" ? "text-blue-400" : ""} rounded-lg`}
-      >
-        <IoMoonOutline /> Dark
-      </Button>
-
-      <Button
-        variant="ghost"
-        onClick={setSystemTheme}
-        className={`${mounted && theme === "system" ? "text-blue-400" : ""} rounded-lg`}
-      >
-        <FaDesktop /> System
-      </Button>
+    <div className="flex items-center gap-6 px-4 py-1 justify-center rounded-2xl border border-border">
+      {options.map(({ value, label, Icon }) => (
+        <Button
+          key={value}
+          variant="ghost"
+          aria-pressed={mounted && theme === value}
+          onClick={() => setTheme(value)}
+          className={`${mounted && theme === value ? "text-blue-400" : ""} rounded-lg hover:bg-muted`}
+        >
+          <Icon /> {label}
+        </Button>
+      ))}
     </div>
   );
 }

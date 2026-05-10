@@ -29,7 +29,7 @@ export default function ResetPasswordPage() {
     defaultValues: {
       email,
       logoutAll: false,
-    } as Partial<ResetPasswordInput>,
+    },
   });
 
   const { resetPassword, isPending, errorMessage, resetError } =
