@@ -10,6 +10,7 @@ import { RegisterDto } from './dto/register.dto';
 import { OtpService } from './otp.service';
 import { SessionService } from './session.service';
 import { ChangeEmailDto } from './dto/change-email.dto';
+import { AccountRecoveryDto } from './dto/account-recovery.dto';
 
 const MAX_FAILED_ATTEMPTS = 10;
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -416,5 +417,28 @@ export class AuthService {
       where: { id: userId },
       data: { twoFactorMethod: TwoFactorMethod.NONE, totpSecret: null },
     });
+  }
+
+  async accountRecovery(dto: AccountRecoveryDto) {
+    const valid = await this.otpService.validateOtp(dto.email, dto.token, OtpTokenType.ACCOUNT_RECOVERY);
+    if (!valid) throw new UnauthorizedException('Invalid or expired recovery link');
+
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (!user) throw new UnauthorizedException('Invalid or expired recovery link');
+
+    const hashedPassword = await argon2.hash(dto.newPassword);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        email: dto.newEmail,
+        password: hashedPassword,
+        twoFactorMethod: 'NONE',
+        totpSecret: null,
+        isVerified: true,
+      },
+    });
+
+    await this.sessionService.deleteAllUserSessions(user.id);
   }
 }

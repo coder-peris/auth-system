@@ -43,6 +43,7 @@ export default function SignupPage() {
     errorMessage,
   } = useRegister();
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const onSubmit = ({ confirmPassword, ...rest }: RegisterInput) =>
     registerUser(rest);
   return (

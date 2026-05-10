@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangle } from "react-icons/lu";
 
@@ -27,12 +27,6 @@ export function ConfirmModal({
   variant = "danger",
   isLoading = false,
 }: ConfirmModalProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -44,7 +38,7 @@ export function ConfirmModal({
     };
   }, [isOpen]);
 
-  if (!mounted || !isOpen) return null;
+  if (typeof window === "undefined" || !isOpen) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">

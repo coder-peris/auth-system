@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "OtpTokenType" ADD VALUE 'ACCOUNT_RECOVERY';

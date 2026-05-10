@@ -30,6 +30,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { SessionService } from './session.service';
 import type { AuthenticatedRequest } from './types/request.type';
+import { AccountRecoveryDto } from './dto/account-recovery.dto';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -318,5 +319,12 @@ export class AuthController {
 
     setSessionCookie(res, token);
     res.redirect(process.env.FRONTEND_URL!);
+  }
+
+  @Post('account-recovery')
+  @HttpCode(HttpStatus.OK)
+  async accountRecovery(@Body() dto: AccountRecoveryDto) {
+    await this.authService.accountRecovery(dto);
+    return { message: 'Account recovered successfully. Please login with your new credentials.' };
   }
 }

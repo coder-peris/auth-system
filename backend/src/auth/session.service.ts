@@ -68,7 +68,7 @@ export class SessionService {
 
   async getUserSessions(userId: string) {
     return this.prisma.session.findMany({
-      where: { userId },
+      where: { userId, isTwoFactorPending: false },
       select: {
         id: true,
         ip: true,

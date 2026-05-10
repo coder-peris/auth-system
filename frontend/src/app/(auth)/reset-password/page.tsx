@@ -36,6 +36,7 @@ export default function ResetPasswordPage() {
     useResetPassword();
 
   const onSubmit = (data: ResetPasswordInput) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { confirmPassword, ...resetData } = data;
     resetPassword(resetData);
   };

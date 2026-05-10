@@ -23,6 +23,6 @@ import { GithubStrategy } from './strategies/github.strategy';
     CleanupService,
     GithubStrategy,
   ],
-  exports: [AuthService, SessionService],
+  exports: [AuthService, SessionService, OtpService],
 })
 export class AuthModule {}
