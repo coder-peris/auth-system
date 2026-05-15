@@ -36,6 +36,11 @@ export default function SignupPage() {
     reValidateMode: "onSubmit",
   });
 
+  const nameField = register("name");
+  const emailField = register("email");
+  const passwordField = register("password");
+  const confirmPasswordField = register("confirmPassword");
+
   const {
     isPending,
     register: registerUser,
@@ -63,7 +68,7 @@ export default function SignupPage() {
           <div className="relative">
             <LuUser className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("name")}
+              {...nameField}
               id="name"
               type="text"
               placeholder="John Doe"
@@ -71,7 +76,7 @@ export default function SignupPage() {
               aria-invalid={!!errors.name}
               disabled={isPending}
               onChange={(e) => {
-                register("name").onChange(e);
+                nameField.onChange(e);
                 clearErrors("name");
                 resetError();
               }}
@@ -87,7 +92,7 @@ export default function SignupPage() {
           <div className="relative">
             <LuMail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("email")}
+              {...emailField}
               id="email"
               type="email"
               placeholder="you@example.com"
@@ -95,7 +100,7 @@ export default function SignupPage() {
               aria-invalid={!!errors.email}
               disabled={isPending}
               onChange={(e) => {
-                register("email").onChange(e);
+                emailField.onChange(e);
                 clearErrors("email");
                 resetError();
               }}
@@ -111,14 +116,14 @@ export default function SignupPage() {
           <div className="relative">
             <LuLock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("password")}
+              {...passwordField}
               id="password"
               type={showPassword ? "text" : "password"}
               className="pl-9 pr-10 rounded-lg"
               aria-invalid={!!errors.password}
               disabled={isPending}
               onChange={(e) => {
-                register("password").onChange(e);
+                passwordField.onChange(e);
                 clearErrors("password");
                 resetError();
               }}
@@ -146,14 +151,14 @@ export default function SignupPage() {
           <div className="relative">
             <LuLock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("confirmPassword")}
+              {...confirmPasswordField}
               id="confirmPassword"
               type={showConfirmPassword ? "text" : "password"}
               className="pl-9 pr-10 rounded-lg"
               aria-invalid={!!errors.confirmPassword}
               disabled={isPending}
               onChange={(e) => {
-                register("confirmPassword").onChange(e);
+                confirmPasswordField.onChange(e);
                 clearErrors("confirmPassword");
                 resetError();
               }}

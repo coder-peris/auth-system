@@ -40,16 +40,17 @@ export default function SupportPage() {
     reValidateMode: "onSubmit",
   });
 
+  const contactEmailField = register("contactEmail");
+  const subjectField = register("subject");
+  const problemDescriptionField = register("problemDescription");
+
   const selectedIssueType = watch("issueType");
 
-  const onSubmit = async (data: SupportInput) => {
-    try {
-      const result = await submitSupport(data);
+  const onSubmit = (data: SupportInput) => {
+    submitSupport(data).then((result) => {
       setTicketId(result.ticketId || null);
       setIsSubmitted(true);
-    } catch {
-      // Error is handled by the useSupport hook
-    }
+    });
   };
 
   const issueTypes = [
@@ -163,14 +164,14 @@ export default function SupportPage() {
           <div className="relative">
             <LuMail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("contactEmail")}
+              {...contactEmailField}
               id="contactEmail"
               type="email"
               placeholder="your.email@example.com"
               className="pl-9 rounded-lg"
               aria-invalid={!!errors.contactEmail}
               onChange={(e) => {
-                register("contactEmail").onChange(e);
+                contactEmailField.onChange(e);
                 clearErrors("contactEmail");
               }}
             />
@@ -226,14 +227,14 @@ export default function SupportPage() {
         <div className="space-y-2.5">
           <Label htmlFor="subject">Subject</Label>
           <Input
-            {...register("subject")}
+            {...subjectField}
             id="subject"
             type="text"
             placeholder="Brief description of your issue"
             className="rounded-lg"
             aria-invalid={!!errors.subject}
             onChange={(e) => {
-              register("subject").onChange(e);
+              subjectField.onChange(e);
               clearErrors("subject");
             }}
           />
@@ -246,13 +247,13 @@ export default function SupportPage() {
           <Label htmlFor="problemDescription">Problem Description</Label>
           <div className="relative">
             <Textarea
-              {...register("problemDescription")}
+              {...problemDescriptionField}
               id="problemDescription"
               placeholder="Please describe your issue in detail. Include any error messages, steps to reproduce the problem, and what you expected to happen."
               className="rounded-lg min-h-[120px] resize-none"
               aria-invalid={!!errors.problemDescription}
               onChange={(e) => {
-                register("problemDescription").onChange(e);
+                problemDescriptionField.onChange(e);
                 clearErrors("problemDescription");
               }}
             />

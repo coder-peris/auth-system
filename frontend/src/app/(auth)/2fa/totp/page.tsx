@@ -26,6 +26,8 @@ export default function TwoFactorTOTPPage() {
     reValidateMode: "onSubmit",
   });
 
+  const codeField = register("code");
+
   const { verify, isPending, errorMessage, resetError } = use2FATOTP();
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export default function TwoFactorTOTPPage() {
           <div className="relative">
             <LuLock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("code")}
+              {...codeField}
               id="code"
               type="text"
               inputMode="numeric"
@@ -85,7 +87,7 @@ export default function TwoFactorTOTPPage() {
               aria-invalid={!!errors.code}
               disabled={isPending}
               onChange={(e) => {
-                register("code").onChange(e);
+                codeField.onChange(e);
                 clearErrors("code");
                 resetError();
               }}

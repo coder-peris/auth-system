@@ -26,6 +26,8 @@ export default function TwoFactorEmailPage() {
     reValidateMode: "onSubmit",
   });
 
+  const otpField = register("otp");
+
   const { verify, isPending, errorMessage, resetError } = use2FAEmail();
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export default function TwoFactorEmailPage() {
           <div className="relative">
             <LuLock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("otp")}
+              {...otpField}
               id="otp"
               type="text"
               inputMode="numeric"
@@ -85,7 +87,7 @@ export default function TwoFactorEmailPage() {
               aria-invalid={!!errors.otp}
               disabled={isPending}
               onChange={(e) => {
-                register("otp").onChange(e);
+                otpField.onChange(e);
                 clearErrors("otp");
                 resetError();
               }}

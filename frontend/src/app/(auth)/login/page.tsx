@@ -34,6 +34,9 @@ export default function LoginPage() {
     reValidateMode: "onSubmit",
   });
 
+  const emailField = register("email");
+  const passwordField = register("password");
+
   const { login, isPending, errorMessage, resetError } = useLogin();
 
   const onSubmit = (data: LoginInput) => login(data);
@@ -55,7 +58,7 @@ export default function LoginPage() {
           <div className="relative">
             <LuMail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("email")}
+              {...emailField}
               id="email"
               type="email"
               placeholder="you@example.com"
@@ -63,7 +66,7 @@ export default function LoginPage() {
               aria-invalid={!!errors.email}
               disabled={isPending}
               onChange={(e) => {
-                register("email").onChange(e);
+                emailField.onChange(e);
                 clearErrors("email");
                 resetError();
               }}
@@ -79,14 +82,14 @@ export default function LoginPage() {
           <div className="relative">
             <LuLock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("password")}
+              {...passwordField}
               id="password"
               type={showPassword ? "text" : "password"}
               className="pl-9 pr-10 rounded-lg"
               aria-invalid={!!errors.password}
               disabled={isPending}
               onChange={(e) => {
-                register("password").onChange(e);
+                passwordField.onChange(e);
                 clearErrors("password");
                 resetError();
               }}
