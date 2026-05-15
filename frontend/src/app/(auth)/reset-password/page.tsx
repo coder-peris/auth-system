@@ -32,6 +32,11 @@ export default function ResetPasswordPage() {
     },
   });
 
+  const emailField = register("email");
+  const otpField = register("otp");
+  const newPasswordField = register("newPassword");
+  const confirmPasswordField = register("confirmPassword");
+
   const { resetPassword, isPending, errorMessage, resetError } =
     useResetPassword();
 
@@ -72,7 +77,7 @@ export default function ResetPasswordPage() {
           <div className="relative">
             <LuMail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("email")}
+              {...emailField}
               id="email"
               type="email"
               placeholder="you@example.com"
@@ -80,7 +85,7 @@ export default function ResetPasswordPage() {
               aria-invalid={!!errors.email}
               disabled={isPending}
               onChange={(e) => {
-                register("email").onChange(e);
+                emailField.onChange(e);
                 clearErrors("email");
                 resetError();
               }}
@@ -96,7 +101,7 @@ export default function ResetPasswordPage() {
           <div className="relative">
             <LuLock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("otp")}
+              {...otpField}
               id="otp"
               type="text"
               placeholder="123456"
@@ -104,7 +109,7 @@ export default function ResetPasswordPage() {
               aria-invalid={!!errors.otp}
               disabled={isPending}
               onChange={(e) => {
-                register("otp").onChange(e);
+                otpField.onChange(e);
                 clearErrors("otp");
                 resetError();
               }}
@@ -120,7 +125,7 @@ export default function ResetPasswordPage() {
           <div className="relative">
             <LuLock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("newPassword")}
+              {...newPasswordField}
               id="newPassword"
               type="password"
               placeholder="Enter new password"
@@ -128,7 +133,7 @@ export default function ResetPasswordPage() {
               aria-invalid={!!errors.newPassword}
               disabled={isPending}
               onChange={(e) => {
-                register("newPassword").onChange(e);
+                newPasswordField.onChange(e);
                 clearErrors("newPassword");
                 resetError();
               }}
@@ -144,7 +149,7 @@ export default function ResetPasswordPage() {
           <div className="relative">
             <LuLock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("confirmPassword")}
+              {...confirmPasswordField}
               id="confirmPassword"
               type="password"
               placeholder="Confirm new password"
@@ -152,7 +157,7 @@ export default function ResetPasswordPage() {
               aria-invalid={!!errors.confirmPassword}
               disabled={isPending}
               onChange={(e) => {
-                register("confirmPassword").onChange(e);
+                confirmPasswordField.onChange(e);
                 clearErrors("confirmPassword");
                 resetError();
               }}

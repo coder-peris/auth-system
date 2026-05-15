@@ -40,6 +40,10 @@ export function ChangePasswordForm() {
     clearErrors,
   } = form;
 
+  const currentPasswordField = register("currentPassword");
+  const newPasswordField = register("newPassword");
+  const confirmPasswordField = register("confirmPassword");
+
   const onSubmit = (data: ChangePasswordInput) => {
     changePassword(
       {
@@ -70,9 +74,9 @@ export function ChangePasswordForm() {
               id="currentPassword"
               type={showCurrentPassword ? "text" : "password"}
               placeholder="••••••••"
-              {...register("currentPassword")}
+              {...currentPasswordField}
               onChange={(e) => {
-                register("currentPassword").onChange(e);
+                currentPasswordField.onChange(e);
                 clearErrors("currentPassword");
                 resetError?.();
               }}
@@ -103,9 +107,9 @@ export function ChangePasswordForm() {
               id="newPassword"
               type={showNewPassword ? "text" : "password"}
               placeholder="••••••••"
-              {...register("newPassword")}
+              {...newPasswordField}
               onChange={(e) => {
-                register("newPassword").onChange(e);
+                newPasswordField.onChange(e);
                 clearErrors("newPassword");
                 resetError?.();
               }}
@@ -136,9 +140,9 @@ export function ChangePasswordForm() {
               id="confirmPassword"
               type={showConfirmPassword ? "text" : "password"}
               placeholder="••••••••"
-              {...register("confirmPassword")}
+              {...confirmPasswordField}
               onChange={(e) => {
-                register("confirmPassword").onChange(e);
+                confirmPasswordField.onChange(e);
                 clearErrors("confirmPassword");
                 resetError?.();
               }}

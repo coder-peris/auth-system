@@ -28,6 +28,8 @@ export default function RequestMagicLinkPage() {
     reValidateMode: "onSubmit",
   });
 
+  const emailField = register("email");
+
   const { sendMagicLink, isPending, errorMessage, resetError, isSuccess } =
     useMagicLink();
 
@@ -106,7 +108,7 @@ export default function RequestMagicLinkPage() {
           <div className="relative">
             <LuMail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              {...register("email")}
+              {...emailField}
               id="email"
               type="email"
               placeholder="you@example.com"
@@ -114,7 +116,7 @@ export default function RequestMagicLinkPage() {
               aria-invalid={!!errors.email}
               disabled={isPending}
               onChange={(e) => {
-                register("email").onChange(e);
+                emailField.onChange(e);
                 clearErrors("email");
                 resetError();
               }}

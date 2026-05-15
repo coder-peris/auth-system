@@ -44,6 +44,10 @@ export function ChangeEmailForm() {
     clearErrors,
   } = form;
 
+  const newEmailField = register("newEmail");
+  const otpField = register("otp");
+  const passwordField = register("password");
+
   const handleRequestEmailChange = () => {
     requestEmailChange(undefined, {
       onSuccess: () => {
@@ -114,9 +118,9 @@ export function ChangeEmailForm() {
               id="newEmail"
               type="email"
               placeholder="new@example.com"
-              {...register("newEmail")}
+              {...newEmailField}
               onChange={(e) => {
-                register("newEmail").onChange(e);
+                newEmailField.onChange(e);
                 clearErrors("newEmail");
                 resetError?.();
               }}
@@ -134,9 +138,9 @@ export function ChangeEmailForm() {
               <Input
                 id="otp"
                 placeholder="000000"
-                {...register("otp")}
+                {...otpField}
                 onChange={(e) => {
-                  register("otp").onChange(e);
+                  otpField.onChange(e);
                   clearErrors("otp");
                   resetError?.();
                 }}
@@ -157,9 +161,9 @@ export function ChangeEmailForm() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  {...register("password")}
+                  {...passwordField}
                   onChange={(e) => {
-                    register("password").onChange(e);
+                    passwordField.onChange(e);
                     clearErrors("password");
                     resetError?.();
                   }}
