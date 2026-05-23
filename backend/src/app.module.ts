@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from './users/users.module';
 import { SupportModule } from './support/support.module';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { SupportModule } from './support/support.module';
     UsersModule,
     SupportModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [],
 })
 export class AppModule {}
