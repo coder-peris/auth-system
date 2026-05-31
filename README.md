@@ -18,6 +18,7 @@ A modern, full-stack authentication system built with NestJS (backend) and Next.
 ### Security Features
 
 - Session-based authentication (HttpOnly cookies)
+- CSRF protection (Double Submit Cookie pattern with non-httpOnly CSRF token)
 - Account lockout after 10 failed login attempts (30 min lockout)
 - Sliding session expiry (15 days from last activity)
 - Email verification for new accounts

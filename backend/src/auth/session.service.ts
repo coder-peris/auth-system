@@ -18,17 +18,19 @@ export class SessionService {
 
   async createSession(userId: string, ip?: string, userAgent?: string) {
     const token = generateToken();
+    const csrfToken = generateToken();
 
     await this.prisma.session.create({
       data: {
         userId,
         tokenHash: hashToken(token),
+        csrfToken,
         ip,
         userAgent,
       },
     });
 
-    return token;
+    return { token, csrfToken };
   }
 
   async validateSession(token: string) {
@@ -54,6 +56,16 @@ export class SessionService {
     });
 
     return session;
+  }
+
+  async validateCsrfToken(sessionId: string, csrfToken: string): Promise<boolean> {
+    const session = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) return false;
+
+    return session.csrfToken === csrfToken;
   }
 
   async deleteAllUserSessions(userId: string) {
@@ -92,24 +104,27 @@ export class SessionService {
 
   async createPendingSession(userId: string, ip?: string, userAgent?: string) {
     const token = generateToken();
+    const csrfToken = generateToken();
 
     const session = await this.prisma.session.create({
       data: {
         userId,
         tokenHash: hashToken(token),
+        csrfToken,
         ip,
         userAgent,
         isTwoFactorPending: true,
       },
     });
 
-    return { token, sessionId: session.id };
+    return { token, csrfToken, sessionId: session.id };
   }
 
   async activateSession(sessionId: string) {
-    await this.prisma.session.update({
+    const session = await this.prisma.session.update({
       where: { id: sessionId },
       data: { isTwoFactorPending: false },
     });
+    return session.csrfToken;
   }
 }

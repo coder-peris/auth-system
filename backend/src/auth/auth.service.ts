@@ -41,8 +41,8 @@ export class AuthService {
       `<p>Your verification code is:</p><h2>${otp}</h2><p>Expires in 15 minutes.</p>`,
     );
 
-    const token = await this.sessionService.createSession(user.id, ip, userAgent);
-    return { user, token };
+    const { token, csrfToken } = await this.sessionService.createSession(user.id, ip, userAgent);
+    return { user, token, csrfToken };
   }
 
   async login(dto: LoginDto, ip?: string, userAgent?: string) {
@@ -111,9 +111,9 @@ export class AuthService {
       };
     }
 
-    const token = await this.sessionService.createSession(user.id, ip, userAgent);
+    const { token, csrfToken } = await this.sessionService.createSession(user.id, ip, userAgent);
 
-    return { twoFactorRequired: false, token };
+    return { twoFactorRequired: false, token, csrfToken };
   }
 
   async verify2faEmail(pendingSessionId: string, otp: string) {
@@ -127,7 +127,8 @@ export class AuthService {
     const valid = await this.otpService.validateOtp(session.user.email, otp, OtpTokenType.TWO_FACTOR);
     if (!valid) throw new UnauthorizedException('Invalid or expired OTP');
 
-    await this.sessionService.activateSession(pendingSessionId);
+    const csrfToken = await this.sessionService.activateSession(pendingSessionId);
+    return { csrfToken };
   }
 
   async getMe(userId: string) {
@@ -222,8 +223,12 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) throw new UnauthorizedException('Invalid or expired magic link');
 
-    const sessionToken = await this.sessionService.createSession(user.id, ip, userAgent);
-    return sessionToken;
+    const { token: sessionToken, csrfToken } = await this.sessionService.createSession(
+      user.id,
+      ip,
+      userAgent,
+    );
+    return { token: sessionToken, csrfToken };
   }
 
   async changePassword(userId: string, sessionId: string, dto: ChangePasswordDto) {
@@ -292,7 +297,8 @@ export class AuthService {
     const result = await verify({ secret: session.user.totpSecret, token: code });
     if (!result.valid) throw new UnauthorizedException('Invalid TOTP code');
 
-    await this.sessionService.activateSession(pendingSessionId);
+    const csrfToken = await this.sessionService.activateSession(pendingSessionId);
+    return { csrfToken };
   }
 
   async requestChangeEmail(userId: string) {
@@ -380,8 +386,8 @@ export class AuthService {
       }
     }
 
-    const token = await this.sessionService.createSession(user.id, ip, userAgent);
-    return token;
+    const { token, csrfToken } = await this.sessionService.createSession(user.id, ip, userAgent);
+    return { token, csrfToken };
   }
 
   async setup2faEmail(userId: string) {
