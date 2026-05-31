@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const NO_EMOJI_REGEX = /^[^\p{Extended_Pictographic}]*$/u;
+
 const email = z
   .string()
   .trim()
@@ -13,13 +15,15 @@ export const registerSchema = z
       .string()
       .trim()
       .min(1, "Name is required")
-      .min(2, "Name is too short."),
+      .min(2, "Name is too short.")
+      .regex(NO_EMOJI_REGEX, "Name cannot contain emojis."),
     email,
     password: z
       .string()
       .min(1, "Password is required.")
       .min(8, "Password must be at least 8 characters.")
-      .max(25, "Password cannot exceed 25 characters."),
+      .max(25, "Password cannot exceed 25 characters.")
+      .regex(NO_EMOJI_REGEX, "Password cannot contain emojis."),
     confirmPassword: z.string().min(1, "Please confirm your password."),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -31,7 +35,10 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const loginSchema = z.object({
   email,
-  password: z.string().min(1, "Password is required."),
+  password: z
+    .string()
+    .min(1, "Password is required.")
+    .regex(NO_EMOJI_REGEX, "Password cannot contain emojis."),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -63,7 +70,8 @@ export const resetPasswordSchema = z
     newPassword: z
       .string()
       .min(8, "Password must be at least 8 characters.")
-      .max(25, "Password cannot exceed 25 characters."),
+      .max(25, "Password cannot exceed 25 characters.")
+      .regex(NO_EMOJI_REGEX, "Password cannot contain emojis."),
     confirmPassword: z.string().min(1, "Please confirm your password."),
     logoutAll: z.boolean(),
   })
@@ -76,11 +84,15 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, "Current password is required"),
+    currentPassword: z
+      .string()
+      .min(1, "Current password is required")
+      .regex(NO_EMOJI_REGEX, "Password cannot contain emojis."),
     newPassword: z
       .string()
       .min(8, "Password must be at least 8 characters.")
-      .max(25, "Password cannot exceed 25 characters."),
+      .max(25, "Password cannot exceed 25 characters.")
+      .regex(NO_EMOJI_REGEX, "Password cannot contain emojis."),
     confirmPassword: z.string().min(1, "Please confirm your password."),
     sessionOption: z.enum(["LOGOUT_ALL", "LOGOUT_OTHERS", "DONT_LOGOUT"]),
   })
