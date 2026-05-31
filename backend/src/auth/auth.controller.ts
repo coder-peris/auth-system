@@ -39,19 +39,8 @@ const COOKIE_OPTIONS = {
   maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
 };
 
-const CSRF_COOKIE_OPTIONS = {
-  httpOnly: false,
-  secure: true,
-  sameSite: 'none' as const,
-  maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
-};
-
 function setSessionCookie(res: Response, token: string) {
   res.cookie('session_token', token, COOKIE_OPTIONS);
-}
-
-function setCsrfCookie(res: Response, csrfToken: string) {
-  res.cookie('csrf_token', csrfToken, CSRF_COOKIE_OPTIONS);
 }
 
 function clearSessionCookie(res: Response) {
@@ -78,9 +67,8 @@ export class AuthController {
     const { user, token, csrfToken } = await this.authService.register(dto, ip, userAgent);
 
     setSessionCookie(res, token);
-    setCsrfCookie(res, csrfToken);
 
-    return { message: 'Registered successfully', user };
+    return { message: 'Registered successfully', user, csrfToken };
   }
 
   @Post('login')
@@ -95,10 +83,13 @@ export class AuthController {
     const { twoFactorRequired, twoFactorMethod, pendingSessionId, token, csrfToken } =
       await this.authService.login(dto, ip, userAgent);
     setSessionCookie(res, token);
-    if (csrfToken) {
-      setCsrfCookie(res, csrfToken);
-    }
-    return { message: 'Logged in successfully', twoFactorRequired, twoFactorMethod, pendingSessionId };
+    return {
+      message: 'Logged in successfully',
+      twoFactorRequired,
+      twoFactorMethod,
+      pendingSessionId,
+      csrfToken,
+    };
   }
 
   @Post('logout')
@@ -111,7 +102,6 @@ export class AuthController {
   ) {
     await this.sessionService.deleteSessionById(sessionId, user.id);
     clearSessionCookie(res);
-    res.clearCookie('csrf_token', CSRF_COOKIE_OPTIONS);
     return { message: 'Logged out successfully' };
   }
 
@@ -121,7 +111,6 @@ export class AuthController {
   async logoutAll(@CurrentUser() user: User, @Res({ passthrough: true }) res: Response) {
     await this.sessionService.deleteAllUserSessions(user.id);
     clearSessionCookie(res);
-    res.clearCookie('csrf_token', CSRF_COOKIE_OPTIONS);
     return { message: 'Logged out from all devices' };
   }
 
@@ -194,8 +183,7 @@ export class AuthController {
       req.headers['user-agent'],
     );
     setSessionCookie(res, token);
-    setCsrfCookie(res, csrfToken);
-    return { message: 'Logged in successfully' };
+    return { message: 'Logged in successfully', csrfToken };
   }
 
   @Post('change-password')
@@ -235,12 +223,9 @@ export class AuthController {
 
   @Post('2fa/email/verify')
   @HttpCode(HttpStatus.OK)
-  async verify2faEmail(@Body() dto: Verify2faEmailDto, @Res({ passthrough: true }) res: Response) {
+  async verify2faEmail(@Body() dto: Verify2faEmailDto) {
     const { csrfToken } = await this.authService.verify2faEmail(dto.pendingSessionId, dto.otp);
-    if (csrfToken) {
-      setCsrfCookie(res, csrfToken);
-    }
-    return { message: 'Two factor authentication successful' };
+    return { message: 'Two factor authentication successful', csrfToken };
   }
 
   @Post('2fa/totp/setup')
@@ -260,12 +245,9 @@ export class AuthController {
 
   @Post('2fa/totp/verify')
   @HttpCode(HttpStatus.OK)
-  async verify2faTotp(@Body() dto: Verify2faTotpDto, @Res({ passthrough: true }) res: Response) {
+  async verify2faTotp(@Body() dto: Verify2faTotpDto) {
     const { csrfToken } = await this.authService.verify2faTotp(dto.pendingSessionId, dto.code);
-    if (csrfToken) {
-      setCsrfCookie(res, csrfToken);
-    }
-    return { message: 'Two factor authentication successful' };
+    return { message: 'Two factor authentication successful', csrfToken };
   }
 
   @Post('change-email/request')
@@ -311,8 +293,7 @@ export class AuthController {
     );
 
     setSessionCookie(res, token);
-    setCsrfCookie(res, csrfToken);
-    res.redirect(process.env.FRONTEND_URL!);
+    res.redirect(`${process.env.FRONTEND_URL!}?csrfToken=${csrfToken}`);
   }
 
   @Get('github')
@@ -340,8 +321,7 @@ export class AuthController {
     );
 
     setSessionCookie(res, token);
-    setCsrfCookie(res, csrfToken);
-    res.redirect(process.env.FRONTEND_URL!);
+    res.redirect(`${process.env.FRONTEND_URL!}?csrfToken=${csrfToken}`);
   }
 
   @Post('account-recovery')

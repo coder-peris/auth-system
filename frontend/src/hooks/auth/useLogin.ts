@@ -16,6 +16,9 @@ export const useLogin = () => {
         router.push(`/2fa/${data.twoFactorMethod.toLowerCase()}`);
         return;
       }
+      if (data.csrfToken) {
+        localStorage.setItem("csrf_token", data.csrfToken);
+      }
       await refreshUser();
       router.push("/dashboard");
     },

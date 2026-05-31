@@ -16,8 +16,11 @@ export const use2FAEmail = () => {
       pendingSessionId: string;
       otp: string;
     }) => verify2FAEmail(pendingSessionId, otp),
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       sessionStorage.removeItem("pendingSessionId");
+      if (data.csrfToken) {
+        localStorage.setItem("csrf_token", data.csrfToken);
+      }
       await refreshUser();
       router.push("/dashboard");
     },
@@ -55,8 +58,11 @@ export const use2FATOTP = () => {
       pendingSessionId: string;
       code: string;
     }) => verify2FATOTP(pendingSessionId, code),
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       sessionStorage.removeItem("pendingSessionId");
+      if (data.csrfToken) {
+        localStorage.setItem("csrf_token", data.csrfToken);
+      }
       await refreshUser();
       router.push("/dashboard");
     },

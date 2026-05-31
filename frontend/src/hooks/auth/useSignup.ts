@@ -10,7 +10,10 @@ export const useRegister = () => {
 
   const mutation = useMutation({
     mutationFn: registerUser,
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      if (data.csrfToken) {
+        localStorage.setItem("csrf_token", data.csrfToken);
+      }
       await refreshUser();
       router.push("/dashboard");
     },

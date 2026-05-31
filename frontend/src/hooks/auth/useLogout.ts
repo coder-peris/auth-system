@@ -10,6 +10,7 @@ export const useLogout = () => {
   const mutation = useMutation({
     mutationFn: logout,
     onSuccess: () => {
+      localStorage.removeItem("csrf_token");
       setUser(null);
       router.push("/login");
     },
@@ -28,6 +29,7 @@ export const useLogoutAll = () => {
   const mutation = useMutation({
     mutationFn: logoutAll,
     onSuccess: () => {
+      localStorage.removeItem("csrf_token");
       setUser(null);
       router.push("/login");
     },

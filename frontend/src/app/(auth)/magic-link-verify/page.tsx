@@ -29,6 +29,9 @@ export default function MagicLinkVerifyPage() {
   useEffect(() => {
     if (data) {
       (async () => {
+        if (data.csrfToken) {
+          localStorage.setItem("csrf_token", data.csrfToken);
+        }
         await refreshUser();
         router.push("/dashboard");
       })();
