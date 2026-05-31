@@ -2,6 +2,14 @@
 
 A modern, full-stack authentication system built with NestJS (backend) and Next.js (frontend), featuring session-based authentication, multiple login methods, and advanced security features.
 
+🔗 **Live Demo**: [auth-system.periskc.com.np](https://auth-system.periskc.com.np)
+
+---
+
+## How It Works
+
+The backend exposes a REST API secured with HttpOnly session cookies and CSRF protection. The frontend communicates with it via Axios and TanStack Query, with Zustand managing client-side auth state. Sessions are stored in PostgreSQL, and all OTP/magic-link flows are handled via Resend email delivery.
+
 ---
 
 ## Features
@@ -52,11 +60,11 @@ A modern, full-stack authentication system built with NestJS (backend) and Next.
 ### Backend
 
 - **Framework**: NestJS
-- **Database**: PostgreSQL (Docker) with Prisma ORM
+- **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: Passport.js (Google, GitHub strategies)
 - **Password Hashing**: Argon2
 - **OTP/TOTP**: otplib
-- **Email**: Nodemailer (Gmail SMTP)
+- **Email**: Resend
 - **Validation**: class-validator + class-transformer
 - **Scheduling**: @nestjs/schedule (cron jobs)
 
@@ -131,9 +139,9 @@ auth-system/
 ### Prerequisites
 
 - Node.js v18+
-- Docker Engine/Docker Desktop
+- Docker Engine / Docker Desktop / PostgreSQL
 - pnpm
-- Gmail account with App Password enabled
+- Resend account (for email delivery)
 
 ### Environment Variables
 
@@ -145,8 +153,8 @@ DATABASE_URL="postgresql://postgres:password@localhost:5432/db"
 
 FRONTEND_URL="http://localhost:3005"
 
-MAIL_USER="your_gmail@gmail.com"
-MAIL_PASS="your_gmail_app_password"
+RESEND_API_KEY="your_resend_api_key"
+MAIL_FROM="noreply@yourdomain.com"
 SUPPORT_EMAIL="support@yourdomain.com"
 
 GOOGLE_CLIENT_ID="your_google_client_id"
@@ -159,8 +167,7 @@ GITHUB_CALLBACK_URL="http://localhost:8000/api/auth/github/callback"
 ```
 
 > **Note**: `DATABASE_URL` credentials match the `docker-compose.yaml` defaults.
-> `MAIL_PASS` is a Gmail App Password, not your Google account password.
-> Generate one at: Google Account → Security → 2-Step Verification → App Passwords
+> Get your Resend API key at https://resend.com/api-keys and verify your sender domain before use.
 
 #### Frontend (`frontend/.env`)
 
@@ -173,7 +180,7 @@ NEXT_PUBLIC_API_URL="http://localhost:8000/api"
 1. **Clone the repository**
 
 ```bash
-https://github.com/coder-peris/auth-system.git
+git clone https://github.com/coder-peris/auth-system.git
 cd auth-system
 ```
 
@@ -220,6 +227,21 @@ The application will be available at:
 
 - Frontend: `http://localhost:3005`
 - Backend API: `http://localhost:8000/api`
+
+---
+
+## Deployment
+
+The live demo is deployed using the following stack:
+
+| Service               | Provider                                                                    |
+| --------------------- | --------------------------------------------------------------------------- |
+| Frontend              | [Vercel](https://vercel.com)                                                |
+| Backend               | [Render](https://render.com)                                                |
+| Database              | [Neon](https://neon.tech) (serverless PostgreSQL)                           |
+| Cold Start Prevention | [Uptime Robot](https://uptimerobot.com) (pings Render to prevent spin-down) |
+
+When deploying, update your environment variables to reflect production URLs — particularly `FRONTEND_URL`, `GOOGLE_CALLBACK_URL`, and `GITHUB_CALLBACK_URL` on the backend, and `NEXT_PUBLIC_API_URL` on the frontend.
 
 ---
 
