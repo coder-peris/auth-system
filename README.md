@@ -8,7 +8,7 @@ A modern, full-stack authentication system built with NestJS (backend) and Next.
 
 ## How It Works
 
-The backend exposes a REST API secured with HttpOnly session cookies and CSRF protection. The frontend communicates with it via Axios and TanStack Query, with Zustand managing client-side auth state. Sessions are stored in PostgreSQL, and all OTP/magic-link flows are handled via Resend email delivery.
+The backend exposes a REST API secured with HttpOnly session cookies (sameSite: 'none' for cross-domain support) and CSRF protection. The CSRF token is returned in the response body on login/session init, stored in localStorage on the frontend, and sent via the x-csrf-token header on state-changing requests. The frontend communicates with the backend via Axios and TanStack Query, with Zustand managing client-side auth state. Sessions are stored in PostgreSQL, and all OTP/magic-link flows are handled via Resend email delivery.
 
 ---
 
@@ -25,8 +25,8 @@ The backend exposes a REST API secured with HttpOnly session cookies and CSRF pr
 
 ### Security Features
 
-- Session-based authentication (HttpOnly cookies)
-- CSRF protection (Double Submit Cookie pattern with non-httpOnly CSRF token)
+- Session-based authentication (HttpOnly cookies with sameSite: 'none' for cross-domain support)
+- CSRF protection (Token returned in response body, stored in localStorage, sent via x-csrf-token header)
 - Account lockout after 10 failed login attempts (30 min lockout)
 - Sliding session expiry (15 days from last activity)
 - Email verification for new accounts
@@ -120,7 +120,7 @@ auth-system/
 │    └── src/
 │        ├── app/
 │        │   ├── (auth)/
-│        │   ├── (protected)/
+│        │   ├── (authenticated)/
 │        │   └── (admin)/
 │        ├── components/
 │        ├── hooks/
