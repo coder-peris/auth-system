@@ -24,6 +24,22 @@ export class AuthGuard implements CanActivate {
     request.user = session.user;
     request.sessionId = session.id;
 
+    // Validate CSRF token for state-changing requests
+    const method = request.method;
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      const csrfToken = request.headers['x-csrf-token'] as string;
+
+      if (!csrfToken) {
+        throw new UnauthorizedException('CSRF token missing');
+      }
+
+      const isValid = await this.sessionService.validateCsrfToken(session.id, csrfToken);
+
+      if (!isValid) {
+        throw new UnauthorizedException('Invalid CSRF token');
+      }
+    }
+
     return true;
   }
 }

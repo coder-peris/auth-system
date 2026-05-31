@@ -39,8 +39,19 @@ const COOKIE_OPTIONS = {
   maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
 };
 
+const CSRF_COOKIE_OPTIONS = {
+  httpOnly: false,
+  secure: true,
+  sameSite: 'none' as const,
+  maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
+};
+
 function setSessionCookie(res: Response, token: string) {
   res.cookie('session_token', token, COOKIE_OPTIONS);
+}
+
+function setCsrfCookie(res: Response, csrfToken: string) {
+  res.cookie('csrf_token', csrfToken, CSRF_COOKIE_OPTIONS);
 }
 
 function clearSessionCookie(res: Response) {
@@ -64,9 +75,10 @@ export class AuthController {
     const ip = req.ip;
     const userAgent = req.headers['user-agent'];
 
-    const { user, token } = await this.authService.register(dto, ip, userAgent);
+    const { user, token, csrfToken } = await this.authService.register(dto, ip, userAgent);
 
     setSessionCookie(res, token);
+    setCsrfCookie(res, csrfToken);
 
     return { message: 'Registered successfully', user };
   }
@@ -80,12 +92,12 @@ export class AuthController {
   ) {
     const ip = req.ip;
     const userAgent = req.headers['user-agent'];
-    const { twoFactorRequired, twoFactorMethod, pendingSessionId, token } = await this.authService.login(
-      dto,
-      ip,
-      userAgent,
-    );
+    const { twoFactorRequired, twoFactorMethod, pendingSessionId, token, csrfToken } =
+      await this.authService.login(dto, ip, userAgent);
     setSessionCookie(res, token);
+    if (csrfToken) {
+      setCsrfCookie(res, csrfToken);
+    }
     return { message: 'Logged in successfully', twoFactorRequired, twoFactorMethod, pendingSessionId };
   }
 
@@ -99,6 +111,7 @@ export class AuthController {
   ) {
     await this.sessionService.deleteSessionById(sessionId, user.id);
     clearSessionCookie(res);
+    res.clearCookie('csrf_token', CSRF_COOKIE_OPTIONS);
     return { message: 'Logged out successfully' };
   }
 
@@ -108,6 +121,7 @@ export class AuthController {
   async logoutAll(@CurrentUser() user: User, @Res({ passthrough: true }) res: Response) {
     await this.sessionService.deleteAllUserSessions(user.id);
     clearSessionCookie(res);
+    res.clearCookie('csrf_token', CSRF_COOKIE_OPTIONS);
     return { message: 'Logged out from all devices' };
   }
 
@@ -173,13 +187,14 @@ export class AuthController {
     @Req() req: AuthenticatedRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const sessionToken = await this.authService.magicLinkVerify(
+    const { token, csrfToken } = await this.authService.magicLinkVerify(
       dto.email,
       dto.token,
       req.ip,
       req.headers['user-agent'],
     );
-    setSessionCookie(res, sessionToken);
+    setSessionCookie(res, token);
+    setCsrfCookie(res, csrfToken);
     return { message: 'Logged in successfully' };
   }
 
@@ -220,8 +235,11 @@ export class AuthController {
 
   @Post('2fa/email/verify')
   @HttpCode(HttpStatus.OK)
-  async verify2faEmail(@Body() dto: Verify2faEmailDto) {
-    await this.authService.verify2faEmail(dto.pendingSessionId, dto.otp);
+  async verify2faEmail(@Body() dto: Verify2faEmailDto, @Res({ passthrough: true }) res: Response) {
+    const { csrfToken } = await this.authService.verify2faEmail(dto.pendingSessionId, dto.otp);
+    if (csrfToken) {
+      setCsrfCookie(res, csrfToken);
+    }
     return { message: 'Two factor authentication successful' };
   }
 
@@ -242,8 +260,11 @@ export class AuthController {
 
   @Post('2fa/totp/verify')
   @HttpCode(HttpStatus.OK)
-  async verify2faTotp(@Body() dto: Verify2faTotpDto) {
-    await this.authService.verify2faTotp(dto.pendingSessionId, dto.code);
+  async verify2faTotp(@Body() dto: Verify2faTotpDto, @Res({ passthrough: true }) res: Response) {
+    const { csrfToken } = await this.authService.verify2faTotp(dto.pendingSessionId, dto.code);
+    if (csrfToken) {
+      setCsrfCookie(res, csrfToken);
+    }
     return { message: 'Two factor authentication successful' };
   }
 
@@ -279,7 +300,7 @@ export class AuthController {
       avatarUrl?: string;
     };
 
-    const token = await this.authService.oauthLogin(
+    const { token, csrfToken } = await this.authService.oauthLogin(
       AuthProvider.GOOGLE,
       profile.providerId,
       profile.email,
@@ -290,6 +311,7 @@ export class AuthController {
     );
 
     setSessionCookie(res, token);
+    setCsrfCookie(res, csrfToken);
     res.redirect(process.env.FRONTEND_URL!);
   }
 
@@ -307,7 +329,7 @@ export class AuthController {
       avatarUrl?: string;
     };
 
-    const token = await this.authService.oauthLogin(
+    const { token, csrfToken } = await this.authService.oauthLogin(
       AuthProvider.GITHUB,
       profile.providerId,
       profile.email,
@@ -318,6 +340,7 @@ export class AuthController {
     );
 
     setSessionCookie(res, token);
+    setCsrfCookie(res, csrfToken);
     res.redirect(process.env.FRONTEND_URL!);
   }
 

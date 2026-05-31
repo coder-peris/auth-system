@@ -1,9 +1,9 @@
 "use client";
 
 import { verifyMagicLink } from "@/services/auth.service";
-import { useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LuLoader, LuTriangleAlert } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
@@ -17,42 +17,35 @@ export default function MagicLinkVerifyPage() {
   const token = searchParams.get("token");
   const { refreshUser } = useUser();
 
-  const [status, setStatus] = useState<"loading" | "error">(
-    !email || !token ? "error" : "loading",
-  );
-  const [errorMessage, setErrorMessage] = useState<string | null>(
-    !email || !token ? "Invalid magic link. Missing email or token." : null,
-  );
+  const missingParams = !email || !token;
 
-  const mutation = useMutation({
-    mutationFn: ({ email, token }: { email: string; token: string }) =>
-      verifyMagicLink(email, token),
-    onSuccess: async () => {
-      await refreshUser();
-      router.push("/dashboard");
-    },
-    onError: (error) => {
-      setStatus("error");
-      if (isAxiosError(error)) {
-        const { message } = error.response?.data ?? {};
-        setErrorMessage(
-          typeof message === "string"
-            ? message
-            : "Invalid or expired magic link.",
-        );
-      } else {
-        setErrorMessage("Something went wrong. Please try again.");
-      }
-    },
+  const { isLoading, error, data } = useQuery({
+    queryKey: ["verify-magic-link", email, token],
+    queryFn: () => verifyMagicLink(email!, token!),
+    enabled: !missingParams,
+    retry: false,
   });
 
   useEffect(() => {
-    if (email && token) {
-      mutation.mutate({ email, token });
+    if (data) {
+      (async () => {
+        await refreshUser();
+        router.push("/dashboard");
+      })();
     }
-  }, [email, token, mutation]);
+  }, [data, router, refreshUser]);
 
-  if (status === "loading") {
+  const errorMessage = missingParams
+    ? "Invalid magic link. Missing email or token."
+    : isAxiosError(error)
+      ? typeof error.response?.data?.message === "string"
+        ? error.response.data.message
+        : "Invalid or expired magic link."
+      : error
+        ? "Something went wrong. Please try again."
+        : null;
+
+  if (isLoading) {
     return (
       <>
         <div className="mb-6">
@@ -63,7 +56,6 @@ export default function MagicLinkVerifyPage() {
             Please wait while we verify your magic link...
           </p>
         </div>
-
         <div className="mb-6 flex items-center justify-center">
           <LuLoader className="h-12 w-12 animate-spin" />
         </div>
@@ -78,7 +70,7 @@ export default function MagicLinkVerifyPage() {
           Invalid Link
         </h2>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          The magic link you clicked is invalid or has expired
+          The magic link you clicked is invalid or has expired.
         </p>
       </div>
 
@@ -100,7 +92,7 @@ export default function MagicLinkVerifyPage() {
         <Button
           type="button"
           variant="link"
-          className="text-sm  hover:underline"
+          className="text-sm hover:underline"
           asChild
         >
           <Link href="/request-magic-link">Request a new magic link</Link>
@@ -109,7 +101,7 @@ export default function MagicLinkVerifyPage() {
 
       <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
         <Button type="button" variant="link" asChild>
-          <Link href="/login"> Sign in with password</Link>
+          <Link href="/login">Sign in with password</Link>
         </Button>
       </div>
     </>

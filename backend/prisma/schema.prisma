@@ -74,6 +74,7 @@ model Session {
   id                 String   @id @default(cuid())
   userId             String
   tokenHash          String   @unique
+  csrfToken          String   @unique
   userAgent          String?
   ip                 String?
   isTwoFactorPending Boolean  @default(false)
